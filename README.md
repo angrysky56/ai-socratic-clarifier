@@ -45,8 +45,10 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install the package and dependencies
 pip install -e .
+```
 
-# Install [Sketch-of-Thought](https://github.com/SimonAytes/SoT) (should be in the repo already)
+Install [Sketch-of-Thought](https://github.com/SimonAytes/SoT) (should be in the repo already)
+```
 python install_sot.py
 ```
 
