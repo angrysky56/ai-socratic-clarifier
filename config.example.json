@@ -1,0 +1,26 @@
+{
+    "integrations": {
+        "lm_studio": {
+            "enabled": true,
+            "base_url": "http://localhost:1234/v1",
+            "api_key": null,
+            "default_model": "default",
+            "timeout": 60
+        },
+        "ollama": {
+            "enabled": true,
+            "base_url": "http://localhost:11434/api",
+            "api_key": null,
+            "default_model": "llama3",
+            "default_embedding_model": "nomic-embed-text",
+            "timeout": 60
+        }
+    },
+    "settings": {
+        "prefer_provider": "auto",
+        "use_llm_questions": true,
+        "use_llm_reasoning": true,
+        "use_sot": true,
+        "use_multimodal": true
+    }
+}

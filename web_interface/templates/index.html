@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Socratic-Clarifier</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .highlight {
+            background-color: #ffe6e6;
+            padding: 2px;
+            border-radius: 3px;
+        }
+        .reasoning-box {
+            background-color: #f8f9fa;
+            border-left: 4px solid #007bff;
+            padding: 10px;
+            margin-bottom: 15px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .question-item {
+            padding: 10px;
+            margin-bottom: 8px;
+            border-left: 3px solid #28a745;
+            background-color: #f8fff8;
+        }
+        .feedback-btn {
+            margin-right: 5px;
+            font-size: 0.8rem;
+        }
+        .issue-badge {
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="mb-4">AI-Socratic-Clarifier</h1>
+        <p class="lead">
+            Enter text to analyze for ambiguity, bias, and logical inconsistencies. 
+            The system will generate Socratic questions to help clarify the content.
+        </p>
+        
+        <div class="row mb-4">
+            <div class="col-md-9">
+                <div class="form-group">
+                    <label for="textInput" class="form-label">Text to Analyze</label>
+                    <textarea id="textInput" class="form-control" rows="5" placeholder="Enter text to analyze..."></textarea>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label for="modeSelect" class="form-label">Operating Mode</label>
+                    <select id="modeSelect" class="form-select">
+                        {% for mode in modes %}
+                        <option value="{{ mode }}">{{ mode|capitalize }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button id="analyzeBtn" class="btn btn-primary mt-4 w-100">Analyze</button>
+            </div>
+        </div>
+        
+        <div id="resultsSection" class="d-none">
+            <h3>Analysis Results</h3>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5>Detected Issues</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="issuesList"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5>SoT Reasoning</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="reasoningBox" class="reasoning-box"></div>
+                            <div id="paradigmInfo" class="text-muted small"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5>Socratic Questions</h5>
+                    <small class="text-muted">Click "Helpful" or "Not Helpful" to provide feedback</small>
+                </div>
+                <div class="card-body">
+                    <div id="questionsList"></div>
+                </div>
+            </div>
+            
+            <div class="alert alert-info" id="highlightedText">
+                <h5>Original Text with Highlights</h5>
+                <div id="textWithHighlights"></div>
+            </div>
+        </div>
+        
+        <div id="loadingIndicator" class="text-center d-none">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p>Analyzing text...</p>
+        </div>
+        
+        <div id="errorAlert" class="alert alert-danger d-none">
+            <strong>Error:</strong> <span id="errorMessage"></span>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            const textInput = document.getElementById('textInput');
+            const modeSelect = document.getElementById('modeSelect');
+            const resultsSection = document.getElementById('resultsSection');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const errorAlert = document.getElementById('errorAlert');
+            const errorMessage = document.getElementById('errorMessage');
+            const issuesList = document.getElementById('issuesList');
+            const questionsList = document.getElementById('questionsList');
+            const reasoningBox = document.getElementById('reasoningBox');
+            const paradigmInfo = document.getElementById('paradigmInfo');
+            const textWithHighlights = document.getElementById('textWithHighlights');
+            
+            // Store issues globally for feedback reference
+            let currentIssues = [];
+            
+            analyzeBtn.addEventListener('click', function() {
+                const text = textInput.value.trim();
+                if (!text) {
+                    showError('Please enter some text to analyze.');
+                    return;
+                }
+                
+                const mode = modeSelect.value;
+                analyzeText(text, mode);
+            });
+            
+            function analyzeText(text, mode) {
+                // Reset previous results
+                resultsSection.classList.add('d-none');
+                errorAlert.classList.add('d-none');
+                loadingIndicator.classList.remove('d-none');
+                
+                // Make API request
+                fetch('/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        text: text,
+                        mode: mode
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    loadingIndicator.classList.add('d-none');
+                    
+                    if (data.error) {
+                        showError(data.error);
+                        return;
+                    }
+                    
+                    // Store issues for feedback
+                    currentIssues = data.issues;
+                    
+                    // Display results
+                    displayResults(data, text);
+                })
+                .catch(error => {
+                    loadingIndicator.classList.add('d-none');
+                    showError('An error occurred while analyzing the text: ' + error.message);
+                });
+            }
+            
+            function displayResults(data, originalText) {
+                // Display issues
+                issuesList.innerHTML = '';
+                if (data.issues && data.issues.length > 0) {
+                    const issuesHtml = data.issues.map((issue, index) => {
+                        let badgeClass = 'bg-secondary';
+                        if (issue.issue.includes('bias')) badgeClass = 'bg-danger';
+                        if (issue.issue.includes('vague')) badgeClass = 'bg-warning text-dark';
+                        if (issue.issue.includes('reference')) badgeClass = 'bg-info text-dark';
+                        
+                        return `
+                            <div class="mb-3">
+                                <span class="badge ${badgeClass} issue-badge">${issue.issue}</span>
+                                <strong>"${issue.term}"</strong> - 
+                                <span class="text-muted small">(${Math.round(issue.confidence * 100)}% confidence)</span>
+                                <div>${issue.description}</div>
+                            </div>
+                        `;
+                    }).join('');
+                    
+                    issuesList.innerHTML = issuesHtml;
+                } else {
+                    issuesList.innerHTML = '<div class="alert alert-success">No issues detected.</div>';
+                }
+                
+                // Display reasoning
+                if (data.reasoning) {
+                    reasoningBox.textContent = data.reasoning;
+                    if (data.sot_paradigm) {
+                        paradigmInfo.textContent = `SoT Paradigm: ${data.sot_paradigm}`;
+                    }
+                } else {
+                    reasoningBox.textContent = 'No reasoning available.';
+                    paradigmInfo.textContent = '';
+                }
+                
+                // Display questions
+                questionsList.innerHTML = '';
+                if (data.questions && data.questions.length > 0) {
+                    const questionsHtml = data.questions.map((question, index) => {
+                        return `
+                            <div class="question-item">
+                                <div class="d-flex justify-content-between">
+                                    <div>${question}</div>
+                                    <div>
+                                        <button class="btn btn-sm btn-outline-success feedback-btn" 
+                                                onclick="provideFeedback('${btoa(question)}', true)">
+                                            Helpful
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger feedback-btn" 
+                                                onclick="provideFeedback('${btoa(question)}', false)">
+                                            Not Helpful
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                    
+                    questionsList.innerHTML = questionsHtml;
+                } else {
+                    questionsList.innerHTML = '<div class="alert alert-info">No questions generated.</div>';
+                }
+                
+                // Highlight issues in original text
+                let highlightedText = originalText;
+                
+                // Sort issues by span start position (descending) to avoid position shifts
+                const sortedIssues = [...data.issues].sort((a, b) => {
+                    if (a.span && b.span) {
+                        return b.span[0] - a.span[0];
+                    }
+                    return 0;
+                });
+                
+                // Apply highlights
+                sortedIssues.forEach(issue => {
+                    if (issue.term) {
+                        // Simple highlighting method - this would be more sophisticated in a real app
+                        highlightedText = highlightedText.replace(
+                            new RegExp(issue.term, 'g'), 
+                            `<span class="highlight" data-issue="${issue.issue}">${issue.term}</span>`
+                        );
+                    }
+                });
+                
+                textWithHighlights.innerHTML = highlightedText;
+                
+                // Show results section
+                resultsSection.classList.remove('d-none');
+            }
+            
+            function showError(message) {
+                errorMessage.textContent = message;
+                errorAlert.classList.remove('d-none');
+            }
+            
+            // Make the feedback function available globally
+            window.provideFeedback = function(encodedQuestion, helpful) {
+                const question = atob(encodedQuestion);
+                
+                // Find related issue type
+                const issueType = currentIssues.length > 0 ? currentIssues[0].issue : 'unknown';
+                
+                fetch('/feedback', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        question: question,
+                        helpful: helpful,
+                        issue_type: issueType
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Show a brief notification
+                        const feedbackAlert = document.createElement('div');
+                        feedbackAlert.className = 'alert alert-success fixed-bottom m-3 w-auto';
+                        feedbackAlert.style.right = '0';
+                        feedbackAlert.style.left = 'auto';
+                        feedbackAlert.textContent = `Feedback recorded! Thank you.`;
+                        document.body.appendChild(feedbackAlert);
+                        
+                        // Remove after 2 seconds
+                        setTimeout(() => {
+                            feedbackAlert.remove();
+                        }, 2000);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error providing feedback:', error);
+                });
+            };
+        });
+    </script>
+</body>
+</html>
