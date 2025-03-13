@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Socratic-Clarifier Settings</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .pattern-card {
+            margin-bottom: 15px;
+        }
+        .pattern-textarea {
+            font-family: monospace;
+            height: 100px;
+        }
+        .nav-pills .nav-link.active {
+            background-color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="mb-4">AI-Socratic-Clarifier Settings</h1>
+        
+        <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="/">Socratic Clarifier</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/">Home</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="/settings">Settings</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+        
+        <div class="row">
+            <div class="col-md-3">
+                <div class="list-group mb-4">
+                    <a href="#general" class="list-group-item list-group-item-action active" data-bs-toggle="list">General Settings</a>
+                    <a href="#detection-patterns" class="list-group-item list-group-item-action" data-bs-toggle="list">Detection Patterns</a>
+                    <a href="#models" class="list-group-item list-group-item-action" data-bs-toggle="list">Model Settings</a>
+                    <a href="#prompts" class="list-group-item list-group-item-action" data-bs-toggle="list">System Prompts</a>
+                    <a href="#sot" class="list-group-item list-group-item-action" data-bs-toggle="list">SoT Settings</a>
+                </div>
+            </div>
+            
+            <div class="col-md-9">
+                <div class="tab-content">
+                    <!-- General Settings Tab -->
+                    <div class="tab-pane fade show active" id="general">
+                        <div class="card">
+                            <div class="card-header">
+                                <h4>General Settings</h4>
+                            </div>
+                            <div class="card-body">
+                                <form id="generalSettingsForm">
+                                    <div class="mb-3">
+                                        <label for="defaultMode" class="form-label">Default Mode</label>
+                                        <select id="defaultMode" class="form-select">
+                                            {% for mode in modes %}
+                                            <option value="{{ mode }}">{{ mode|capitalize }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="mb-3 form-check">
+                                        <input type="checkbox" class="form-check-input" id="useSoT" checked>
+                                        <label class="form-check-label" for="useSoT">Use Sketch-of-Thought</label>
+                                    </div>
+                                    
+                                    <button type="submit" class="btn btn-primary">Save General Settings</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Detection Patterns Tab -->
+                    <div class="tab-pane fade" id="detection-patterns">
+                        <div class="card">
+                            <div class="card-header">
+                                <h4>Detection Patterns</h4>
+                                <p class="text-muted">Customize the patterns used to detect various issues in text.</p>
+                            </div>
+                            <div class="card-body">
+                                <ul class="nav nav-pills mb-3" id="patternsTab" role="tablist">
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link active" id="vague-tab" data-bs-toggle="pill" data-bs-target="#vague" type="button">Vague Terms</button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="bias-tab" data-bs-toggle="pill" data-bs-target="#bias" type="button">Gender Bias</button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="stereotype-tab" data-bs-toggle="pill" data-bs-target="#stereotype" type="button">Stereotypes</button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="inclusive-tab" data-bs-toggle="pill" data-bs-target="#inclusive" type="button">Non-Inclusive</button>
+                                    </li>
+                                </ul>
+                                
+                                <div class="tab-content" id="patternsTabContent">
+                                    <div class="tab-pane fade show active" id="vague" role="tabpanel">
+                                        <form id="vagueTermsForm">
+                                            <div class="mb-3">
+                                                <label class="form-label">Vague Terms Patterns</label>
+                                                <p class="text-muted small">Regular expressions to detect vague or subjective terms</p>
+                                                
+                                                <div id="vaguePatterns">
+                                                    {% for pattern in vague_patterns %}
+                                                    <div class="pattern-card card">
+                                                        <div class="card-body">
+                                                            <div class="mb-2 d-flex justify-content-between">
+                                                                <label class="form-label">Pattern {{ loop.index }}</label>
+                                                                <button type="button" class="btn btn-sm btn-outline-danger remove-pattern">Remove</button>
+                                                            </div>
+                                                            <textarea class="form-control pattern-textarea">{{ pattern }}</textarea>
+                                                        </div>
+                                                    </div>
+                                                    {% endfor %}
+                                                </div>
+                                                
+                                                <button type="button" id="addVaguePattern" class="btn btn-sm btn-outline-primary mt-2">Add Pattern</button>
+                                            </div>
+                                            
+                                            <button type="submit" class="btn btn-primary">Save Vague Terms Patterns</button>
+                                        </form>
+                                    </div>
+                                    
+                                    <div class="tab-pane fade" id="bias" role="tabpanel">
+                                        <form id="genderBiasForm">
+                                            <div class="mb-3">
+                                                <label class="form-label">Gender Bias Patterns</label>
+                                                <p class="text-muted small">Regular expressions to detect gender-biased language</p>
+                                                
+                                                <div id="biasPatterns">
+                                                    {% for pattern in gender_bias_patterns %}
+                                                    <div class="pattern-card card">
+                                                        <div class="card-body">
+                                                            <div class="mb-2 d-flex justify-content-between">
+                                                                <label class="form-label">Pattern {{ loop.index }}</label>
+                                                                <button type="button" class="btn btn-sm btn-outline-danger remove-pattern">Remove</button>
+                                                            </div>
+                                                            <textarea class="form-control pattern-textarea">{{ pattern }}</textarea>
+                                                        </div>
+                                                    </div>
+                                                    {% endfor %}
+                                                </div>
+                                                
+                                                <button type="button" id="addBiasPattern" class="btn btn-sm btn-outline-primary mt-2">Add Pattern</button>
+                                            </div>
+                                            
+                                            <button type="submit" class="btn btn-primary">Save Gender Bias Patterns</button>
+                                        </form>
+                                    </div>
+                                    
+                                    <div class="tab-pane fade" id="stereotype" role="tabpanel">
+                                        <form id="stereotypeForm">
+                                            <div class="mb-3">
+                                                <label class="form-label">Stereotype Patterns</label>
+                                                <p class="text-muted small">Regular expressions to detect stereotypical statements</p>
+                                                
+                                                <div id="stereotypePatterns">
+                                                    {% for pattern in stereotype_patterns %}
+                                                    <div class="pattern-card card">
+                                                        <div class="card-body">
+                                                            <div class="mb-2 d-flex justify-content-between">
+                                                                <label class="form-label">Pattern {{ loop.index }}</label>
+                                                                <button type="button" class="btn btn-sm btn-outline-danger remove-pattern">Remove</button>
+                                                            </div>
+                                                            <textarea class="form-control pattern-textarea">{{ pattern }}</textarea>
+                                                        </div>
+                                                    </div>
+                                                    {% endfor %}
+                                                </div>
+                                                
+                                                <button type="button" id="addStereotypePattern" class="btn btn-sm btn-outline-primary mt-2">Add Pattern</button>
+                                            </div>
+                                            
+                                            <button type="submit" class="btn btn-primary">Save Stereotype Patterns</button>
+                                        </form>
+                                    </div>
+                                    
+                                    <div class="tab-pane fade" id="inclusive" role="tabpanel">
+                                        <form id="inclusiveForm">
+                                            <div class="mb-3">
+                                                <label class="form-label">Non-Inclusive Patterns</label>
+                                                <p class="text-muted small">Regular expressions to detect non-inclusive language</p>
+                                                
+                                                <div id="inclusivePatterns">
+                                                    {% for pattern in non_inclusive_patterns %}
+                                                    <div class="pattern-card card">
+                                                        <div class="card-body">
+                                                            <div class="mb-2 d-flex justify-content-between">
+                                                                <label class="form-label">Pattern {{ loop.index }}</label>
+                                                                <button type="button" class="btn btn-sm btn-outline-danger remove-pattern">Remove</button>
+                                                            </div>
+                                                            <textarea class="form-control pattern-textarea">{{ pattern }}</textarea>
+                                                        </div>
+                                                    </div>
+                                                    {% endfor %}
+                                                </div>
+                                                
+                                                <button type="button" id="addInclusivePattern" class="btn btn-sm btn-outline-primary mt-2">Add Pattern</button>
+                                            </div>
+                                            
+                                            <button type="submit" class="btn btn-primary">Save Non-Inclusive Patterns</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Model Settings Tab -->
+                    <div class="tab-pane fade" id="models">
+                        <div class="card">
+                            <div class="card-header">
+                                <h4>Model Settings</h4>
+                            </div>
+                            <div class="card-body">
+                                <form id="modelSettingsForm">
+                                    <div class="mb-3">
+                                        <label for="preferProvider" class="form-label">Preferred Provider</label>
+                                        <select id="preferProvider" class="form-select">
+                                            <option value="auto">Auto (Use Best Available)</option>
+                                            <option value="lm_studio">LM Studio</option>
+                                            <option value="ollama">Ollama</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="ollamaModel" class="form-label">Ollama Default Model</label>
+                                        <input type="text" class="form-control" id="ollamaModel" value="{{ ollama_model }}">
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="ollamaEmbeddingModel" class="form-label">Ollama Embedding Model</label>
+                                        <input type="text" class="form-control" id="ollamaEmbeddingModel" value="{{ ollama_embedding_model }}">
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="lmStudioModel" class="form-label">LM Studio Default Model</label>
+                                        <input type="text" class="form-control" id="lmStudioModel" value="{{ lm_studio_model }}">
+                                    </div>
+                                    
+                                    <button type="submit" class="btn btn-primary">Save Model Settings</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- System Prompts Tab -->
+                    <div class="tab-pane fade" id="prompts">
+                        <div class="card">
+                            <div class="card-header">
+                                <h4>System Prompts</h4>
+                            </div>
+                            <div class="card-body">
+                                <form id="promptsForm">
+                                    <div class="mb-3">
+                                        <label for="questionPrompt" class="form-label">Question Generation Prompt</label>
+                                        <textarea id="questionPrompt" class="form-control" rows="8">{{ question_prompt }}</textarea>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="reasoningPrompt" class="form-label">Reasoning Generation Prompt</label>
+                                        <textarea id="reasoningPrompt" class="form-control" rows="8">{{ reasoning_prompt }}</textarea>
+                                    </div>
+                                    
+                                    <button type="submit" class="btn btn-primary">Save System Prompts</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- SoT Settings Tab -->
+                    <div class="tab-pane fade" id="sot">
+                        <div class="card">
+                            <div class="card-header">
+                                <h4>Sketch-of-Thought Settings</h4>
+                            </div>
+                            <div class="card-body">
+                                <form id="sotSettingsForm">
+                                    <div class="mb-3">
+                                        <label for="defaultParadigm" class="form-label">Default SoT Paradigm</label>
+                                        <select id="defaultParadigm" class="form-select">
+                                            <option value="auto">Automatic Selection</option>
+                                            <option value="conceptual_chaining">Conceptual Chaining</option>
+                                            <option value="chunked_symbolism">Chunked Symbolism</option>
+                                            <option value="expert_lexicons">Expert Lexicons</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="mb-3 form-check">
+                                        <input type="checkbox" class="form-check-input" id="enableLlmQuestions" checked>
+                                        <label class="form-check-label" for="enableLlmQuestions">Use LLM for question generation</label>
+                                    </div>
+                                    
+                                    <div class="mb-3 form-check">
+                                        <input type="checkbox" class="form-check-input" id="enableLlmReasoning" checked>
+                                        <label class="form-check-label" for="enableLlmReasoning">Use LLM for reasoning enhancement</label>
+                                    </div>
+                                    
+                                    <button type="submit" class="btn btn-primary">Save SoT Settings</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add pattern button handlers
+            document.getElementById('addVaguePattern').addEventListener('click', function() {
+                addPattern('vaguePatterns');
+            });
+            
+            document.getElementById('addBiasPattern').addEventListener('click', function() {
+                addPattern('biasPatterns');
+            });
+            
+            document.getElementById('addStereotypePattern').addEventListener('click', function() {
+                addPattern('stereotypePatterns');
+            });
+            
+            document.getElementById('addInclusivePattern').addEventListener('click', function() {
+                addPattern('inclusivePatterns');
+            });
+            
+            // Remove pattern buttons
+            document.querySelectorAll('.remove-pattern').forEach(button => {
+                button.addEventListener('click', function() {
+                    this.closest('.pattern-card').remove();
+                });
+            });
+            
+            // Form submission handlers
+            document.getElementById('generalSettingsForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                saveGeneralSettings();
+            });
+            
+            document.getElementById('vagueTermsForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                savePatterns('vague');
+            });
+            
+            document.getElementById('genderBiasForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                savePatterns('gender_bias');
+            });
+            
+            document.getElementById('stereotypeForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                savePatterns('stereotype');
+            });
+            
+            document.getElementById('inclusiveForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                savePatterns('non_inclusive');
+            });
+            
+            document.getElementById('modelSettingsForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                saveModelSettings();
+            });
+            
+            document.getElementById('promptsForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                savePrompts();
+            });
+            
+            document.getElementById('sotSettingsForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                saveSotSettings();
+            });
+        });
+        
+        function addPattern(containerId) {
+            const container = document.getElementById(containerId);
+            const index = container.children.length + 1;
+            
+            const patternCard = document.createElement('div');
+            patternCard.className = 'pattern-card card';
+            patternCard.innerHTML = `
+                <div class="card-body">
+                    <div class="mb-2 d-flex justify-content-between">
+                        <label class="form-label">Pattern ${index}</label>
+                        <button type="button" class="btn btn-sm btn-outline-danger remove-pattern">Remove</button>
+                    </div>
+                    <textarea class="form-control pattern-textarea"></textarea>
+                </div>
+            `;
+            
+            container.appendChild(patternCard);
+            
+            // Add event listener to the new remove button
+            patternCard.querySelector('.remove-pattern').addEventListener('click', function() {
+                patternCard.remove();
+            });
+        }
+        
+        function saveGeneralSettings() {
+            const settings = {
+                default_mode: document.getElementById('defaultMode').value,
+                use_sot: document.getElementById('useSoT').checked
+            };
+            
+            fetch('/api/settings/general', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(settings)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('General settings saved successfully!');
+                } else {
+                    alert('Error saving settings: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('Error: ' + error);
+            });
+        }
+        
+        function savePatterns(patternType) {
+            let containerId;
+            switch (patternType) {
+                case 'vague':
+                    containerId = 'vaguePatterns';
+                    break;
+                case 'gender_bias':
+                    containerId = 'biasPatterns';
+                    break;
+                case 'stereotype':
+                    containerId = 'stereotypePatterns';
+                    break;
+                case 'non_inclusive':
+                    containerId = 'inclusivePatterns';
+                    break;
+            }
+            
+            const patterns = [];
+            document.querySelectorAll(`#${containerId} textarea`).forEach(textarea => {
+                if (textarea.value.trim()) {
+                    patterns.push(textarea.value.trim());
+                }
+            });
+            
+            fetch(`/api/settings/patterns/${patternType}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ patterns })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Patterns saved successfully!');
+                } else {
+                    alert('Error saving patterns: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('Error: ' + error);
+            });
+        }
+        
+        function saveModelSettings() {
+            const settings = {
+                prefer_provider: document.getElementById('preferProvider').value,
+                ollama_model: document.getElementById('ollamaModel').value,
+                ollama_embedding_model: document.getElementById('ollamaEmbeddingModel').value,
+                lm_studio_model: document.getElementById('lmStudioModel').value
+            };
+            
+            fetch('/api/settings/models', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(settings)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Model settings saved successfully!');
+                } else {
+                    alert('Error saving settings: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('Error: ' + error);
+            });
+        }
+        
+        function savePrompts() {
+            const settings = {
+                question_prompt: document.getElementById('questionPrompt').value,
+                reasoning_prompt: document.getElementById('reasoningPrompt').value
+            };
+            
+            fetch('/api/settings/prompts', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(settings)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Prompts saved successfully!');
+                } else {
+                    alert('Error saving prompts: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('Error: ' + error);
+            });
+        }
+        
+        function saveSotSettings() {
+            const settings = {
+                default_paradigm: document.getElementById('defaultParadigm').value,
+                use_llm_questions: document.getElementById('enableLlmQuestions').checked,
+                use_llm_reasoning: document.getElementById('enableLlmReasoning').checked
+            };
+            
+            fetch('/api/settings/sot', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(settings)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('SoT settings saved successfully!');
+                } else {
+                    alert('Error saving settings: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('Error: ' + error);
+            });
+        }
+    </script>
+</body>
+</html>

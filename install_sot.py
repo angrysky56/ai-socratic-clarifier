@@ -5,6 +5,8 @@ Helper script to install Sketch-of-Thought from GitHub.
 import os
 import subprocess
 import sys
+import site
+import importlib
 
 def install_sot():
     """
@@ -38,8 +40,21 @@ def install_sot():
             check=True
         )
         
-        print("Sketch-of-Thought installed successfully!")
-        return True
+        # Force a reload of site packages to ensure the newly installed package is available
+        importlib.reload(site)
+        
+        # Verify the installation
+        try:
+            importlib.import_module("sketch_of_thought")
+            print("Sketch-of-Thought installed and verified successfully!")
+            return True
+        except ImportError:
+            print("Warning: Sketch-of-Thought was installed but could not be imported.")
+            print("You may need to restart your Python interpreter or adjust your PYTHONPATH.")
+            print(f"The package was installed to: {os.path.join(tmp_dir, 'SoT')}")
+            # Return True anyway as the installation did complete
+            return True
+            
     except subprocess.CalledProcessError as e:
         print(f"Error installing Sketch-of-Thought: {e}")
         return False

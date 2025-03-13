@@ -5,14 +5,54 @@ This demonstrates how to analyze text and get Socratic questions.
 
 import sys
 import os
+import subprocess
 
 # Add the parent directory to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from socratic_clarifier import SocraticClarifier
+def check_and_install_sot():
+    """Check if Sketch-of-Thought is installed and install if not available."""
+    try:
+        # Try to import SoT
+        from sketch_of_thought import SoT
+        print("Sketch-of-Thought is already installed.")
+        return True
+    except ImportError:
+        # SoT is not installed, attempt to install it
+        print("Sketch-of-Thought not found. Attempting to install...")
+        try:
+            script_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'install_sot.py'))
+            if os.path.exists(script_path):
+                result = subprocess.call([sys.executable, script_path])
+                if result == 0:
+                    print("Successfully installed Sketch-of-Thought!")
+                    return True
+                else:
+                    print("Failed to install Sketch-of-Thought. Please install it manually.")
+                    return False
+            else:
+                print(f"SoT installation script not found at {script_path}")
+                return False
+        except Exception as e:
+            print(f"Error installing Sketch-of-Thought: {e}")
+            return False
 
 def main():
     """Run basic examples of the Socratic clarifier."""
+    
+    # Ensure SoT is installed before continuing
+    if not check_and_install_sot():
+        print("Cannot continue without Sketch-of-Thought. Please install it manually.")
+        print("You can install it by running: python install_sot.py")
+        return
+    
+    # Now import SocraticClarifier
+    try:
+        from socratic_clarifier import SocraticClarifier
+    except ImportError as e:
+        print(f"Failed to import SocraticClarifier: {e}")
+        print("Make sure the package is properly installed.")
+        return
     
     print("AI-Socratic-Clarifier Basic Usage Example")
     print("=" * 50)

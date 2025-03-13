@@ -27,7 +27,8 @@ class BiasDetector:
         
         self.stereotypes = [
             r'\ball\s+(?:\w+\s+)*(?:women|men|asians|africans|latinos|elderly|millennials)\s+(?:are|have|do)\b',
-            r'\b(?:women|men)\s+(?:are better|are worse|can\'t|always|never)\b'
+            r'\b(?:women|men)\s+(?:are better|are worse|can\'t|always|never)\b',
+            r'\b(?:USA|America|United States|country)\s+(?:is|are)\s+(?:the\s+)?(?:greatest|best|worst|most)\b'
         ]
         
         self.non_inclusive = [

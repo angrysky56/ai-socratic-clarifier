@@ -23,7 +23,7 @@ class AmbiguityDetector:
         self.vague_terms = [
             r'\b(?:significant|substantial|several|various|most|many|some|few)\b',
             r'\b(?:recently|soon|later|earlier|sometimes|occasionally|often|frequently)\b',
-            r'\b(?:good|bad|better|worse|best|worst|improved|effective)\b'
+            r'\b(?:good|bad|better|worse|best|worst|greatest|improved|effective)\b'
         ]
         
         self.unclear_references = [

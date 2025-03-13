@@ -4,6 +4,8 @@ Provides the main SocraticClarifier class that coordinates the components.
 """
 
 import os
+import sys
+import json
 from typing import List, Dict, Any, Optional, Union, Tuple
 from loguru import logger
 from pydantic import BaseModel
@@ -20,31 +22,50 @@ except ImportError:
     SOT_REASONING_AVAILABLE = False
 from socratic_clarifier.modes.mode_manager import ModeManager
 
-# Import local SoT implementation directly
-SOT_AVAILABLE = True
-class SoT:
-    """Local implementation of SoT functionality."""
+# Try to import Sketch-of-Thought
+def import_sot():
+    """Try to import SoT and handle any import errors."""
+    try:
+        # Ensure module is not cached if previous import failed
+        if "sketch_of_thought" in sys.modules:
+            del sys.modules["sketch_of_thought"]
+            
+        from sketch_of_thought import SoT
+        logger.info("Successfully imported Sketch-of-Thought package")
+        return True, SoT
+    except ImportError as e:
+        logger.warning(f"Could not import Sketch-of-Thought: {e}")
+        return False, None
+
+# Try to import SoT
+SOT_AVAILABLE, SoT_class = import_sot()
+
+# Create a local fallback implementation if SoT is not available
+if not SOT_AVAILABLE:
     
-    def __init__(self):
-        pass
-    
-    def classify_question(self, text):
-        """Classify question to determine reasoning paradigm."""
-        # Simple heuristic-based classification as a fallback
-        if any(word in text.lower() for word in ['math', 'calculate', 'compute', 'equation', 'number']):
-            return "chunked_symbolism"
-        elif any(word in text.lower() for word in ['technical', 'expert', 'medical', 'legal', 'specific']):
-            return "expert_lexicons"
-        else:
-            return "conceptual_chaining"
-    
-    def avaliable_paradigms(self):
-        """Return the available reasoning paradigms."""
-        return ["conceptual_chaining", "chunked_symbolism", "expert_lexicons"]
-    
-    def get_initialized_context(self, paradigm, question=None, format="llm", include_system_prompt=True):
-        """Placeholder for context initialization."""
-        return []
+    class SoT:
+        """Local implementation of SoT functionality when the package is not available."""
+        
+        def __init__(self):
+            logger.warning("Using fallback SoT implementation. For full functionality, install the SoT package.")
+        
+        def classify_question(self, text):
+            """Classify question to determine reasoning paradigm."""
+            # Simple heuristic-based classification as a fallback
+            if any(word in text.lower() for word in ['math', 'calculate', 'compute', 'equation', 'number']):
+                return "chunked_symbolism"
+            elif any(word in text.lower() for word in ['technical', 'expert', 'medical', 'legal', 'specific']):
+                return "expert_lexicons"
+            else:
+                return "conceptual_chaining"
+        
+        def avaliable_paradigms(self):
+            """Return the available reasoning paradigms."""
+            return ["conceptual_chaining", "chunked_symbolism", "expert_lexicons"]
+        
+        def get_initialized_context(self, paradigm, question=None, format="llm", include_system_prompt=True):
+            """Placeholder for context initialization."""
+            return []
 
 
 class AnalysisResult(BaseModel):
@@ -55,6 +76,50 @@ class AnalysisResult(BaseModel):
     reasoning: Optional[str] = None
     sot_paradigm: Optional[str] = None
     confidence: float
+
+
+def load_config():
+    """Load configuration from config.json."""
+    config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'config.json'))
+    default_config = {
+        "integrations": {
+            "lm_studio": {
+                "enabled": True,
+                "base_url": "http://localhost:1234/v1",
+                "api_key": None,
+                "default_model": "default",
+                "timeout": 60
+            },
+            "ollama": {
+                "enabled": True,
+                "base_url": "http://localhost:11434/api",
+                "api_key": None,
+                "default_model": "llama3",
+                "default_embedding_model": "nomic-embed-text",
+                "timeout": 60
+            }
+        },
+        "settings": {
+            "prefer_provider": "auto",
+            "use_llm_questions": True,
+            "use_llm_reasoning": True,
+            "use_sot": True,
+            "use_multimodal": True
+        }
+    }
+    
+    try:
+        if os.path.exists(config_path):
+            with open(config_path, 'r') as f:
+                config = json.load(f)
+            logger.info(f"Configuration loaded from {config_path}")
+            return config
+        else:
+            logger.warning(f"Configuration file not found at {config_path}. Using default configuration.")
+            return default_config
+    except Exception as e:
+        logger.error(f"Error loading configuration: {e}. Using default configuration.")
+        return default_config
 
 
 class SocraticClarifier:
@@ -69,14 +134,25 @@ class SocraticClarifier:
         sot (Optional[SoT]): The Sketch-of-Thought module, if available
     """
     
-    def __init__(self, mode: str = "standard", use_sot: bool = True):
+    def __init__(self, mode: str = "standard", use_sot: bool = True, config: Dict[str, Any] = None):
         """
         Initialize the SocraticClarifier.
         
         Args:
             mode: The operating mode (academic, legal, casual, etc.)
             use_sot: Whether to use Sketch-of-Thought integration
+            config: Optional configuration dictionary
         """
+        # Load config if not provided
+        if config is None:
+            self.config = load_config()
+        else:
+            self.config = config
+        
+        # Use config settings if available
+        if not use_sot and "settings" in self.config and "use_sot" in self.config["settings"]:
+            use_sot = self.config["settings"]["use_sot"]
+        
         self.mode_manager = ModeManager()
         self.mode = self.mode_manager.get_mode(mode)
         
@@ -102,8 +178,16 @@ class SocraticClarifier:
         self.sot = None
         self.sot_paradigm_override = None
         self.use_sot = use_sot
-        if use_sot and SOT_AVAILABLE:
-            self.sot = SoT()
+        if use_sot:
+            # Check for SoT availability
+            if not SOT_AVAILABLE:
+                logger.warning("Sketch-of-Thought not available. Try running 'python install_sot.py' to install it.")
+                logger.warning("Using fallback SoT implementation with limited functionality.")
+                self.sot = SoT()
+            else:
+                # Use the imported SoT class
+                self.sot = SoT_class()
+            
             logger.info("Sketch-of-Thought integration activated.")
     
     def get_detector_issues(self, text: str) -> List[Dict[str, Any]]:

@@ -10,6 +10,7 @@ This example demonstrates:
 
 import sys
 import os
+import json
 from pathlib import Path
 
 # Add the parent directory to the Python path
@@ -24,6 +25,50 @@ from loguru import logger
 import argparse
 
 
+def load_config():
+    """Load configuration from config.json."""
+    config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'config.json'))
+    default_config = {
+        "integrations": {
+            "lm_studio": {
+                "enabled": True,
+                "base_url": "http://localhost:1234/v1",
+                "api_key": None,
+                "default_model": "default",
+                "timeout": 60
+            },
+            "ollama": {
+                "enabled": True,
+                "base_url": "http://localhost:11434/api",
+                "api_key": None,
+                "default_model": "llama3",
+                "default_embedding_model": "nomic-embed-text",
+                "timeout": 60
+            }
+        },
+        "settings": {
+            "prefer_provider": "auto",
+            "use_llm_questions": True,
+            "use_llm_reasoning": True,
+            "use_sot": True,
+            "use_multimodal": True
+        }
+    }
+    
+    try:
+        if os.path.exists(config_path):
+            with open(config_path, 'r') as f:
+                config = json.load(f)
+            logger.info(f"Configuration loaded from {config_path}")
+            return config
+        else:
+            logger.warning(f"Configuration file not found at {config_path}. Using default configuration.")
+            return default_config
+    except Exception as e:
+        logger.error(f"Error loading configuration: {e}. Using default configuration.")
+        return default_config
+
+
 class EnhancedClarifier(SocraticClarifier):
     """
     Enhanced version of SocraticClarifier that leverages local LLMs
@@ -34,8 +79,17 @@ class EnhancedClarifier(SocraticClarifier):
         """Initialize the enhanced clarifier."""
         super().__init__(mode=mode)
         
-        # Initialize the integration manager
+        # Load config if not provided
+        if config is None:
+            config = load_config()
+        
+        # Initialize the integration manager with the config
         self.integration_manager = IntegrationManager(config=config)
+        
+        # Add a timeout for Ollama operations to prevent hanging
+        if "integrations" in config and "ollama" in config["integrations"]:
+            if "timeout" not in config["integrations"]["ollama"]:
+                config["integrations"]["ollama"]["timeout"] = 10  # Set a shorter timeout
         
         # Check available providers
         llm_providers = self.integration_manager.get_available_llm_providers()
@@ -191,7 +245,20 @@ def main():
     parser.add_argument("--image", type=str, help="Optional image path for multimodal analysis")
     parser.add_argument("--mode", type=str, default="standard", help="Operating mode")
     parser.add_argument("--base-only", action="store_true", help="Use only base SoT functionality")
+    parser.add_argument("--config", type=str, help="Path to custom config.json file")
     args = parser.parse_args()
+    
+    # Load configuration
+    if args.config and os.path.exists(args.config):
+        try:
+            with open(args.config, 'r') as f:
+                config = json.load(f)
+            logger.info(f"Using custom configuration from {args.config}")
+        except Exception as e:
+            logger.error(f"Error loading custom configuration: {e}. Using default configuration.")
+            config = load_config()
+    else:
+        config = load_config()
     
     # Define example texts if none provided
     example_texts = [
@@ -201,8 +268,8 @@ def main():
         "The chairman made a decision that impacted all policemen in the department."
     ]
     
-    # Create the enhanced clarifier
-    clarifier = EnhancedClarifier(mode=args.mode)
+    # Create the enhanced clarifier with the loaded config
+    clarifier = EnhancedClarifier(mode=args.mode, config=config)
     
     # If text provided, use it; otherwise, use examples
     if args.text:

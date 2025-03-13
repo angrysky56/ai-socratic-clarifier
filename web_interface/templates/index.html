@@ -33,11 +33,42 @@
         .issue-badge {
             margin-right: 5px;
         }
+        
+        #debugInfo {
+            padding: 10px;
+            background-color: #333;
+            color: #ddd;
+            font-family: monospace;
+            border-radius: 5px;
+            margin-top: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
     </style>
 </head>
 <body>
     <div class="container mt-4">
         <h1 class="mb-4">AI-Socratic-Clarifier</h1>
+        
+        <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="/">Socratic Clarifier</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="/">Home</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/settings">Settings</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+        
         <p class="lead">
             Enter text to analyze for ambiguity, bias, and logical inconsistencies. 
             The system will generate Socratic questions to help clarify the content.
@@ -105,6 +136,16 @@
                 <h5>Original Text with Highlights</h5>
                 <div id="textWithHighlights"></div>
             </div>
+            
+            <div class="alert alert-light" id="modelInfo">
+                <h5>Model Information</h5>
+                <div id="modelDetails">
+                    <p><strong>SoT Enabled:</strong> <span id="sotEnabled">Yes</span></p>
+                    <p><strong>SoT Paradigm:</strong> <span id="sotParadigm">conceptual_chaining</span></p>
+                    <p><strong>Provider:</strong> <span id="providerName">None</span></p>
+                    <p><small>You can adjust these settings on the <a href="/settings">Settings page</a>.</small></p>
+                </div>
+            </div>
         </div>
         
         <div id="loadingIndicator" class="text-center d-none">
@@ -116,6 +157,11 @@
         
         <div id="errorAlert" class="alert alert-danger d-none">
             <strong>Error:</strong> <span id="errorMessage"></span>
+        </div>
+        
+        <div id="debugInfo" class="d-none">
+            <h5>Debug Information</h5>
+            <pre id="debugLog"></pre>
         </div>
     </div>
     
@@ -157,6 +203,12 @@
                 errorAlert.classList.add('d-none');
                 loadingIndicator.classList.remove('d-none');
                 
+                // Debug info
+                const debugInfo = document.getElementById('debugInfo');
+                const debugLog = document.getElementById('debugLog');
+                debugLog.textContent = `Analyzing: "${text}" with mode ${mode}\n`;
+                debugInfo.classList.remove('d-none');
+                
                 // Make API request
                 fetch('/analyze', {
                     method: 'POST',
@@ -174,8 +226,18 @@
                     
                     if (data.error) {
                         showError(data.error);
+                        debugLog.textContent += `Error: ${data.error}\n`;
                         return;
                     }
+                    
+                    // Debug info
+                    debugLog.textContent += `Received response with ${data.issues?.length || 0} issues\n`;
+                    if (data.issues && data.issues.length > 0) {
+                        data.issues.forEach(issue => {
+                            debugLog.textContent += `- ${issue.issue}: ${issue.term} (${issue.confidence})\n`;
+                        });
+                    }
+                    debugLog.textContent += `Generated ${data.questions?.length || 0} questions\n`;
                     
                     // Store issues for feedback
                     currentIssues = data.issues;
@@ -277,7 +339,12 @@
                 
                 textWithHighlights.innerHTML = highlightedText;
                 
-                // Show results section
+                // Update model info
+                    document.getElementById('sotEnabled').textContent = data.sot_enabled ? 'Yes' : 'No';
+                    document.getElementById('sotParadigm').textContent = data.sot_paradigm || 'None';
+                    document.getElementById('providerName').textContent = data.provider || 'None';
+                    
+                    // Show results section
                 resultsSection.classList.remove('d-none');
             }
             

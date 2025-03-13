@@ -4,6 +4,7 @@ Integration manager for coordinating different LLM and embedding providers.
 
 from typing import Dict, Any, List, Optional, Union, Tuple
 import os
+import json
 from loguru import logger
 
 from socratic_clarifier.integrations.llm_provider import LLMProvider
@@ -27,37 +28,112 @@ class IntegrationManager:
         Args:
             config: Optional configuration dictionary
         """
-        self.config = config or {}
+        # Load config if not provided
+        if config is None:
+            config = self._load_config()
+        
+        self.config = config
         self.llm_providers: Dict[str, LLMProvider] = {}
         self.embedding_providers: Dict[str, EmbeddingProvider] = {}
         
         # Discover available providers
         self._discover_providers()
     
+    def _load_config(self) -> Dict[str, Any]:
+        """Load configuration from config.json."""
+        config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'config.json'))
+        default_config = {
+            "integrations": {
+                "lm_studio": {
+                    "enabled": True,
+                    "base_url": "http://localhost:1234/v1",
+                    "api_key": None,
+                    "default_model": "default",
+                    "timeout": 60
+                },
+                "ollama": {
+                    "enabled": True,
+                    "base_url": "http://localhost:11434/api",
+                    "api_key": None,
+                    "default_model": "llama3",
+                    "default_embedding_model": "nomic-embed-text",
+                    "timeout": 60
+                }
+            },
+            "settings": {
+                "prefer_provider": "auto",
+                "use_llm_questions": True,
+                "use_llm_reasoning": True,
+                "use_sot": True,
+                "use_multimodal": True
+            }
+        }
+        
+        try:
+            if os.path.exists(config_path):
+                with open(config_path, 'r') as f:
+                    config = json.load(f)
+                logger.info(f"Configuration loaded from {config_path}")
+                return config
+            else:
+                logger.warning(f"Configuration file not found at {config_path}. Using default configuration.")
+                return default_config
+        except Exception as e:
+            logger.error(f"Error loading configuration: {e}. Using default configuration.")
+            return default_config
+    
     def _discover_providers(self):
         """Discover and initialize available providers."""
-        # Try to connect to LM Studio
-        try:
-            lm_studio_url = self.config.get("lm_studio_url", "http://localhost:1234/v1")
-            lm_studio = LMStudioProvider(base_url=lm_studio_url)
-            models = lm_studio.get_available_models()
-            if models:
-                logger.info(f"LM Studio detected with {len(models)} models available.")
-                self.llm_providers["lm_studio"] = lm_studio
-        except Exception as e:
-            logger.debug(f"LM Studio not available: {e}")
+        # Get configuration for providers
+        lm_studio_config = self.config.get("integrations", {}).get("lm_studio", {})
+        ollama_config = self.config.get("integrations", {}).get("ollama", {})
         
-        # Try to connect to Ollama
-        try:
-            ollama_url = self.config.get("ollama_url", "http://localhost:11434/api")
-            ollama = OllamaProvider(base_url=ollama_url)
-            models = ollama.get_available_models()
-            if models:
-                logger.info(f"Ollama detected with {len(models)} models available.")
-                self.llm_providers["ollama"] = ollama
-                self.embedding_providers["ollama"] = ollama
-        except Exception as e:
-            logger.debug(f"Ollama not available: {e}")
+        # Only try to connect if enabled in config
+        lm_studio_enabled = lm_studio_config.get("enabled", True)
+        ollama_enabled = ollama_config.get("enabled", True)
+        
+        # Try to connect to LM Studio if enabled
+        if lm_studio_enabled:
+            try:
+                lm_studio_url = lm_studio_config.get("base_url", "http://localhost:1234/v1")
+                lm_studio_api_key = lm_studio_config.get("api_key")
+                lm_studio_default_model = lm_studio_config.get("default_model", "default")
+                
+                lm_studio = LMStudioProvider(
+                    base_url=lm_studio_url,
+                    api_key=lm_studio_api_key,
+                    default_model=lm_studio_default_model
+                )
+                
+                models = lm_studio.get_available_models()
+                if models:
+                    logger.info(f"LM Studio detected with {len(models)} models available.")
+                    self.llm_providers["lm_studio"] = lm_studio
+            except Exception as e:
+                logger.debug(f"LM Studio not available: {e}")
+        
+        # Try to connect to Ollama if enabled
+        if ollama_enabled:
+            try:
+                ollama_url = ollama_config.get("base_url", "http://localhost:11434/api")
+                ollama_api_key = ollama_config.get("api_key")
+                ollama_default_model = ollama_config.get("default_model", "llama3")
+                ollama_default_embedding_model = ollama_config.get("default_embedding_model", "nomic-embed-text")
+                
+                ollama = OllamaProvider(
+                    base_url=ollama_url,
+                    api_key=ollama_api_key,
+                    default_model=ollama_default_model,
+                    default_embedding_model=ollama_default_embedding_model
+                )
+                
+                models = ollama.get_available_models()
+                if models:
+                    logger.info(f"Ollama detected with {len(models)} models available.")
+                    self.llm_providers["ollama"] = ollama
+                    self.embedding_providers["ollama"] = ollama
+            except Exception as e:
+                logger.debug(f"Ollama not available: {e}")
         
         # Log provider status
         if not self.llm_providers:
@@ -77,6 +153,12 @@ class IntegrationManager:
         """
         if provider_name:
             return self.llm_providers.get(provider_name)
+        
+        # Check for preferred provider in config
+        preferred_provider = self.config.get("settings", {}).get("prefer_provider", "auto")
+        
+        if preferred_provider != "auto" and preferred_provider in self.llm_providers:
+            return self.llm_providers[preferred_provider]
         
         # If no specific provider requested, return the best available
         # Preference order: LM Studio, Ollama
@@ -132,6 +214,11 @@ class IntegrationManager:
         Returns:
             True if multimodal is supported, False otherwise
         """
+        # Check if multimodal is enabled in config
+        multimodal_enabled = self.config.get("settings", {}).get("use_multimodal", True)
+        if not multimodal_enabled:
+            return False
+            
         for provider in self.llm_providers.values():
             if provider.is_multimodal_supported():
                 return True
@@ -145,6 +232,11 @@ class IntegrationManager:
         Returns:
             LLMProvider instance or None if none support multimodal
         """
+        # Check if multimodal is enabled in config
+        multimodal_enabled = self.config.get("settings", {}).get("use_multimodal", True)
+        if not multimodal_enabled:
+            return None
+            
         for name, provider in self.llm_providers.items():
             if provider.is_multimodal_supported():
                 return provider
@@ -169,6 +261,11 @@ class IntegrationManager:
         Returns:
             List of generated questions
         """
+        # Check if LLM questions are enabled in config
+        llm_questions_enabled = self.config.get("settings", {}).get("use_llm_questions", True)
+        if not llm_questions_enabled:
+            return []
+            
         provider = self.get_llm_provider(provider_name)
         if not provider:
             logger.warning("No LLM provider available for question generation.")
@@ -245,6 +342,11 @@ class IntegrationManager:
         Returns:
             Enhanced reasoning string
         """
+        # Check if LLM reasoning is enabled in config
+        llm_reasoning_enabled = self.config.get("settings", {}).get("use_llm_reasoning", True)
+        if not llm_reasoning_enabled:
+            return ""
+            
         provider = self.get_llm_provider(provider_name)
         if not provider:
             logger.warning("No LLM provider available for reasoning enhancement.")
