@@ -139,6 +139,76 @@ def index():
     """Render the main page."""
     return render_template('index.html', modes=clarifier.available_modes())
 
+@app.route('/chat', methods=['GET'])
+def chat():
+    """Render the chat interface."""
+    return render_template('chat.html', modes=clarifier.available_modes())
+
+@app.route('/chat', methods=['POST'])
+def chat_message():
+    """Process a chat message and return a response."""
+    try:
+        # Get the data from the request
+        data = request.get_json()
+        message = data.get('message', '')
+        mode = data.get('mode', 'standard')
+        use_sot = data.get('use_sot', True)
+        
+        print(f"Received message: '{message}' with mode: {mode}, use_sot: {use_sot}")
+        
+        # Temporarily store the original SoT setting
+        original_sot = clarifier.use_sot
+        
+        # Set the mode and SoT setting
+        clarifier.set_mode(mode)
+        clarifier.use_sot = use_sot
+        
+        # Analyze the message
+        result = clarifier.analyze(message)
+        
+        # Restore original SoT setting
+        clarifier.use_sot = original_sot
+        
+        # Generate a response based on the analysis
+        if result.issues and result.questions:
+            # Craft a response that includes one of the Socratic questions
+            reply = f"I've analyzed your statement and have some thoughts to share. {result.questions[0]}"
+            
+            # If there are more questions, include a followup
+            if len(result.questions) > 1:
+                reply += f" I also wonder: {result.questions[1]}"
+        else:
+            # Default response if no issues detected
+            reply = "I've considered your statement. It seems clear and well-formed. Do you have any other thoughts you'd like to explore?"
+        
+        # Prepare the response data
+        response = {
+            'reply': reply,
+            'text': message,
+            'issues': [
+                {
+                    'term': issue.get('term', ''),
+                    'issue': issue.get('issue', ''),
+                    'description': issue.get('description', ''),
+                    'confidence': issue.get('confidence', 0)
+                }
+                for issue in result.issues
+            ],
+            'questions': result.questions,
+            'reasoning': result.reasoning,
+            'sot_paradigm': result.sot_paradigm,
+            'confidence': result.confidence,
+            'sot_enabled': use_sot,
+            'model': config.get('integrations', {}).get('ollama', {}).get('default_model', 'default'),
+            'provider': config.get('settings', {}).get('prefer_provider', 'auto')
+        }
+        
+        return jsonify(response)
+    except Exception as e:
+        error_traceback = traceback.format_exc()
+        logger.error(f"Error processing chat message: {e}\n{error_traceback}")
+        return jsonify({'error': str(e), 'traceback': error_traceback}), 500
+
 @app.route('/settings', methods=['GET'])
 def settings():
     """Render the settings page."""

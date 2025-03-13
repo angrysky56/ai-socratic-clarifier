@@ -22,9 +22,23 @@ except ImportError:
     SOT_REASONING_AVAILABLE = False
 from socratic_clarifier.modes.mode_manager import ModeManager
 
-# Try to import Sketch-of-Thought
+# Try to import MCP Sequential Thinking adapter
 def import_sot():
-    """Try to import SoT and handle any import errors."""
+    """Try to import SoT adapter and handle any import errors."""
+    try:
+        # Try to import the MCP Sequential Thinking adapter
+        from socratic_clarifier.integrations.mcp_sequential_thinking import MCPSequentialThinking
+        logger.info("Successfully imported MCP Sequential Thinking adapter")
+        return True, MCPSequentialThinking
+    except ImportError as e:
+        logger.warning(f"Could not import MCP Sequential Thinking adapter: {e}")
+        return False, None
+
+# Try to import the MCP Sequential Thinking adapter first
+SOT_AVAILABLE, SoT_class = import_sot()
+
+# If MCP adapter is not available, try the Python library
+if not SOT_AVAILABLE:
     try:
         # Ensure module is not cached if previous import failed
         if "sketch_of_thought" in sys.modules:
@@ -32,22 +46,19 @@ def import_sot():
             
         from sketch_of_thought import SoT
         logger.info("Successfully imported Sketch-of-Thought package")
-        return True, SoT
+        SOT_AVAILABLE, SoT_class = True, SoT
     except ImportError as e:
         logger.warning(f"Could not import Sketch-of-Thought: {e}")
-        return False, None
+        SOT_AVAILABLE, SoT_class = False, None
 
-# Try to import SoT
-SOT_AVAILABLE, SoT_class = import_sot()
-
-# Create a local fallback implementation if SoT is not available
+# Create a local fallback implementation if neither is available
 if not SOT_AVAILABLE:
     
     class SoT:
-        """Local implementation of SoT functionality when the package is not available."""
+        """Local implementation of SoT functionality when neither MCP nor the package is available."""
         
         def __init__(self):
-            logger.warning("Using fallback SoT implementation. For full functionality, install the SoT package.")
+            logger.warning("Using fallback SoT implementation. For full functionality, ensure MCP Sequential Thinking or SoT package is available.")
         
         def classify_question(self, text):
             """Classify question to determine reasoning paradigm."""

@@ -1,4 +1,8 @@
 # AI-Socratic-Clarifier
+# Currently mostly broken, working on it.
+
+![alt text](image.png)
+lol
 
 An AI-assisted workflow for bias detection, language clarification, and Socratic questioning, enhanced with Sketch-of-Thought (SoT) reasoning and local LLM integration.
 

@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Socratic-Clarifier Chat</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .highlight {
+            background-color: #ffe6e6;
+            padding: 2px;
+            border-radius: 3px;
+        }
+        .reasoning-box {
+            background-color: #f8f9fa;
+            border-left: 4px solid #007bff;
+            padding: 10px;
+            margin-bottom: 15px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .question-item {
+            padding: 10px;
+            margin-bottom: 8px;
+            border-left: 3px solid #28a745;
+            background-color: #f8fff8;
+        }
+        .chat-container {
+            height: calc(100vh - 200px);
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+        .chat-messages {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        .message {
+            margin-bottom: 15px;
+            max-width: 80%;
+            padding: 10px 15px;
+            border-radius: 15px;
+            position: relative;
+        }
+        .user-message {
+            background-color: #dcf8c6;
+            margin-left: auto;
+            border-bottom-right-radius: 5px;
+        }
+        .assistant-message {
+            background-color: #f1f0f0;
+            margin-right: auto;
+            border-bottom-left-radius: 5px;
+        }
+        .message-issues {
+            margin-top: 10px;
+            padding: 8px;
+            background-color: #fff3cd;
+            border-radius: 5px;
+            font-size: 0.9rem;
+        }
+        .message-questions {
+            margin-top: 10px;
+            padding: 8px;
+            background-color: #d1ecf1;
+            border-radius: 5px;
+            font-size: 0.9rem;
+        }
+        .message-reasoning {
+            margin-top: 10px;
+            padding: 8px;
+            background-color: #e2e3e5;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .chat-input {
+            margin-top: 15px;
+            display: flex;
+        }
+        .chat-input textarea {
+            flex-grow: 1;
+            border-radius: 20px;
+            padding: 10px 15px;
+            resize: none;
+        }
+        .chat-input button {
+            margin-left: 10px;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            margin-top: 10px;
+        }
+        .typing-indicator span {
+            height: 10px;
+            width: 10px;
+            margin: 0 1px;
+            background-color: #9E9E9E;
+            display: block;
+            border-radius: 50%;
+            opacity: 0.4;
+        }
+        .typing-indicator span:nth-of-type(1) {
+            animation: 1s blink infinite 0.3333s;
+        }
+        .typing-indicator span:nth-of-type(2) {
+            animation: 1s blink infinite 0.6666s;
+        }
+        .typing-indicator span:nth-of-type(3) {
+            animation: 1s blink infinite 0.9999s;
+        }
+        @keyframes blink {
+            50% {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="mb-4">AI-Socratic-Clarifier Chat</h1>
+        
+        <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="/">Socratic Clarifier</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/">Home</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="/chat">Chat</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/settings">Settings</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+        
+        <p class="lead">
+            Chat with the Socratic Clarifier. It will help you refine your thinking with Socratic questions.
+        </p>
+        
+        <div class="row">
+            <div class="col-md-9">
+                <div class="chat-container">
+                    <div id="chatMessages" class="chat-messages">
+                        <div class="message assistant-message">
+                            Hello! I'm the Socratic Clarifier. I can help analyze your statements for ambiguity, bias, or logical issues, and ask questions to help clarify your thinking. What would you like to discuss today?
+                        </div>
+                    </div>
+                    <div class="typing-indicator d-none" id="typingIndicator">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                    <div class="chat-input">
+                        <textarea id="messageInput" class="form-control" placeholder="Type your message here..." rows="2"></textarea>
+                        <button id="sendButton" class="btn btn-primary">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-send-fill" viewBox="0 0 16 16">
+                                <path d="M15.964.686a.5.5 0 0 0-.65-.65L.767 5.855H.766l-.452.18a.5.5 0 0 0-.082.887l.41.26.001.002 4.995 3.178 3.178 4.995.002.002.26.41a.5.5 0 0 0 .886-.083l6-15Zm-1.833 1.89L6.637 10.07l-.215-.338a.5.5 0 0 0-.154-.154l-.338-.215 7.494-7.494 1.178-.471-.47 1.178Z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Chat Settings</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group mb-3">
+                            <label for="modeSelect" class="form-label">Operating Mode</label>
+                            <select id="modeSelect" class="form-select">
+                                {% for mode in modes %}
+                                <option value="{{ mode }}">{{ mode|capitalize }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="showAnalysisSwitch" checked>
+                            <label class="form-check-label" for="showAnalysisSwitch">Show Analysis Details</label>
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="useSoTSwitch" checked>
+                            <label class="form-check-label" for="useSoTSwitch">Use Sequential Thinking</label>
+                        </div>
+                        <div id="modelInfo" class="mb-3">
+                            <h6>Model Information</h6>
+                            <div class="small">
+                                <p><strong>LLM:</strong> <span id="currentLLM">deepseek-r1:7b</span></p>
+                                <p><strong>SoT Enabled:</strong> <span id="sotEnabled">Yes</span></p>
+                                <p><strong>Provider:</strong> <span id="providerName">ollama</span></p>
+                            </div>
+                        </div>
+                        <button id="clearChatBtn" class="btn btn-outline-secondary btn-sm w-100">Clear Chat</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const messageInput = document.getElementById('messageInput');
+            const sendButton = document.getElementById('sendButton');
+            const chatMessages = document.getElementById('chatMessages');
+            const typingIndicator = document.getElementById('typingIndicator');
+            const modeSelect = document.getElementById('modeSelect');
+            const showAnalysisSwitch = document.getElementById('showAnalysisSwitch');
+            const useSoTSwitch = document.getElementById('useSoTSwitch');
+            const clearChatBtn = document.getElementById('clearChatBtn');
+            
+            // Event listener for send button
+            sendButton.addEventListener('click', sendMessage);
+            
+            // Event listener for enter key
+            messageInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+            
+            // Clear chat button
+            clearChatBtn.addEventListener('click', function() {
+                // Keep only the first welcome message
+                while (chatMessages.childNodes.length > 1) {
+                    chatMessages.removeChild(chatMessages.lastChild);
+                }
+            });
+            
+            function sendMessage() {
+                const message = messageInput.value.trim();
+                if (message === '') return;
+                
+                // Add user message to chat
+                addMessage(message, 'user');
+                
+                // Clear input
+                messageInput.value = '';
+                
+                // Show typing indicator
+                typingIndicator.classList.remove('d-none');
+                
+                // Get current mode
+                const mode = modeSelect.value;
+                const showAnalysis = showAnalysisSwitch.checked;
+                const useSoT = useSoTSwitch.checked;
+                
+                // Make API request to analyze
+                fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        mode: mode,
+                        use_sot: useSoT
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Hide typing indicator
+                    typingIndicator.classList.add('d-none');
+                    
+                    if (data.error) {
+                        addErrorMessage(data.error);
+                        return;
+                    }
+                    
+                    // Add assistant's response
+                    addMessage(data.reply, 'assistant', showAnalysis ? data : null);
+                    
+                    // Update model info
+                    document.getElementById('currentLLM').textContent = data.model || 'Unknown';
+                    document.getElementById('sotEnabled').textContent = data.sot_enabled ? 'Yes' : 'No';
+                    document.getElementById('providerName').textContent = data.provider || 'None';
+                    
+                    // Scroll to bottom
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                })
+                .catch(error => {
+                    typingIndicator.classList.add('d-none');
+                    addErrorMessage('An error occurred while processing your message: ' + error.message);
+                });
+                
+                // Scroll to bottom
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+            
+            function addMessage(text, sender, analysisData = null) {
+                const messageElement = document.createElement('div');
+                messageElement.className = `message ${sender}-message`;
+                
+                // Main message text
+                const textElement = document.createElement('div');
+                textElement.textContent = text;
+                messageElement.appendChild(textElement);
+                
+                // If it's an assistant message and we have analysis data, add it
+                if (sender === 'assistant' && analysisData) {
+                    // Issues section
+                    if (analysisData.issues && analysisData.issues.length > 0) {
+                        const issuesElement = document.createElement('div');
+                        issuesElement.className = 'message-issues';
+                        
+                        const issuesTitle = document.createElement('strong');
+                        issuesTitle.textContent = 'Detected Issues:';
+                        issuesElement.appendChild(issuesTitle);
+                        
+                        const issuesList = document.createElement('ul');
+                        issuesList.className = 'mb-0 mt-1';
+                        
+                        analysisData.issues.forEach(issue => {
+                            const issueItem = document.createElement('li');
+                            issueItem.innerHTML = `<strong>${issue.issue}:</strong> "${issue.term}" - ${issue.description}`;
+                            issuesList.appendChild(issueItem);
+                        });
+                        
+                        issuesElement.appendChild(issuesList);
+                        messageElement.appendChild(issuesElement);
+                    }
+                    
+                    // Questions section
+                    if (analysisData.questions && analysisData.questions.length > 0) {
+                        const questionsElement = document.createElement('div');
+                        questionsElement.className = 'message-questions';
+                        
+                        const questionsTitle = document.createElement('strong');
+                        questionsTitle.textContent = 'Socratic Questions:';
+                        questionsElement.appendChild(questionsTitle);
+                        
+                        const questionsList = document.createElement('ul');
+                        questionsList.className = 'mb-0 mt-1';
+                        
+                        analysisData.questions.forEach(question => {
+                            const questionItem = document.createElement('li');
+                            questionItem.textContent = question;
+                            questionsList.appendChild(questionItem);
+                        });
+                        
+                        questionsElement.appendChild(questionsList);
+                        messageElement.appendChild(questionsElement);
+                    }
+                    
+                    // Reasoning section
+                    if (analysisData.reasoning) {
+                        const reasoningElement = document.createElement('div');
+                        reasoningElement.className = 'message-reasoning';
+                        
+                        const reasoningTitle = document.createElement('strong');
+                        reasoningTitle.textContent = `SoT Reasoning (${analysisData.sot_paradigm || 'default'}):`;
+                        reasoningElement.appendChild(reasoningTitle);
+                        
+                        const reasoningText = document.createElement('pre');
+                        reasoningText.className = 'mb-0 mt-1';
+                        reasoningText.textContent = analysisData.reasoning;
+                        
+                        reasoningElement.appendChild(reasoningText);
+                        messageElement.appendChild(reasoningElement);
+                    }
+                }
+                
+                chatMessages.appendChild(messageElement);
+                
+                // Scroll to bottom
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+            
+            function addErrorMessage(text) {
+                const messageElement = document.createElement('div');
+                messageElement.className = 'message assistant-message';
+                messageElement.style.backgroundColor = '#f8d7da';
+                messageElement.textContent = 'Error: ' + text;
+                chatMessages.appendChild(messageElement);
+                
+                // Scroll to bottom
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+        });
+    </script>
+</body>
+</html>
