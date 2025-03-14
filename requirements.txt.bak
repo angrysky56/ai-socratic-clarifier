@@ -8,5 +8,3 @@ uvicorn>=0.22.0
 pytest>=7.0.0
 black>=23.0.0
 flake8>=6.0.0
-sketch-of-thought>=0.1.0
-requests>=2.25.0

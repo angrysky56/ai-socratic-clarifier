@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Starter script for the AI-Socratic-Clarifier web interface.
-This ensures all necessary components are running before starting the web interface.
+Starter script for the AI-Socratic-Clarifier web interface with integrated SRE.
+This ensures all necessary components are running before starting the web interface
+and integrates the Symbiotic Reflective Ecosystem (SRE) for enhanced reasoning.
 """
 
 import os
@@ -55,6 +56,48 @@ def check_ollama():
         print(f"Error checking Ollama: {e}")
         return False
 
+def initialize_sre():
+    """
+    Initialize the Symbiotic Reflective Ecosystem (SRE).
+    This function sets up the reflective ecosystem for enhanced reasoning.
+    """
+    try:
+        from sequential_thinking.Symbiotic_Reflective_Ecosystem import ReflectiveEcosystem, ReflectiveNode
+        
+        print("Initializing Symbiotic Reflective Ecosystem...")
+        
+        # Create the ecosystem
+        ecosystem = ReflectiveEcosystem()
+        
+        # Create reflective nodes for different reasoning paradigms
+        nodes = [
+            ReflectiveNode("conceptual_chaining", resonance=1.0),
+            ReflectiveNode("chunked_symbolism", resonance=0.8),
+            ReflectiveNode("expert_lexicons", resonance=0.9)
+        ]
+        
+        # Add nodes to the ecosystem
+        for node in nodes:
+            ecosystem.add_node(node)
+        
+        # Establish connections between nodes
+        for i in range(len(nodes)):
+            for j in range(i+1, len(nodes)):
+                nodes[i].connections.append(nodes[j])
+                nodes[j].connections.append(nodes[i])
+        
+        # Set up initial layering
+        ecosystem.dimensional_layering()
+        
+        print("Symbiotic Reflective Ecosystem initialized successfully!")
+        return ecosystem
+    except ImportError:
+        print("Warning: SRE modules not available. Continuing without Symbiotic Reflective Ecosystem.")
+        return None
+    except Exception as e:
+        print(f"Error initializing SRE: {e}")
+        return None
+
 def start_web_interface():
     """Start the Flask web interface."""
     try:
@@ -105,6 +148,9 @@ def main():
             print("Exiting...")
             return
     
+    # Initialize the Symbiotic Reflective Ecosystem
+    sre = initialize_sre()
+    
     # Start web interface
     web_process = start_web_interface()
     if web_process:
@@ -113,6 +159,7 @@ def main():
         # Print the URL
         print("\n" + "="*50)
         print("Web interface available at: http://localhost:5000")
+        print("Reflection interface at: http://localhost:5000/reflection")
         print("="*50 + "\n")
         
         # Monitor the web interface process

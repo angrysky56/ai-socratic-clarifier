@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Starter script for the AI-Socratic-Clarifier web interface.
-This ensures all necessary components are running before starting the web interface.
+Start script for the AI-Socratic-Clarifier with direct model integration.
+This ensures everything is properly connected and working.
 """
 
 import os
@@ -42,6 +42,13 @@ def check_ollama():
                 if default_model and default_model not in model_names:
                     print(f"Warning: Default model '{default_model}' not found in Ollama.")
                     print("Available models:", ", ".join(model_names))
+                    
+                    # Try to update config with an available model
+                    if model_names:
+                        config["integrations"]["ollama"]["default_model"] = model_names[0]
+                        with open(config_path, 'w') as f:
+                            json.dump(config, f, indent=4)
+                        print(f"Updated config to use '{model_names[0]}' as default model.")
                 
                 if embedding_model and embedding_model not in model_names:
                     print(f"Warning: Embedding model '{embedding_model}' not found in Ollama.")
@@ -54,6 +61,27 @@ def check_ollama():
     except Exception as e:
         print(f"Error checking Ollama: {e}")
         return False
+
+def ensure_direct_integration():
+    """Ensure the direct integration file exists."""
+    direct_integration_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web_interface", "direct_integration.py")
+    
+    if not os.path.exists(direct_integration_path):
+        print("Direct integration file not found. Running diagnostics...")
+        
+        # Run the diagnostics script which will create the necessary files
+        diagnostics_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "debugging.py")
+        subprocess.run([sys.executable, diagnostics_path], check=True)
+        
+        # Verify the file was created
+        if os.path.exists(direct_integration_path):
+            print("Direct integration file created successfully.")
+            return True
+        else:
+            print("Failed to create direct integration file.")
+            return False
+    
+    return True
 
 def start_web_interface():
     """Start the Flask web interface."""
@@ -99,11 +127,30 @@ def main():
     
     # Check if Ollama is running
     if not check_ollama():
-        print("Warning: Ollama is not running or accessible. The clarifier will use fallback mechanisms.")
+        print("Warning: Ollama is not running or accessible. The clarifier will not function properly.")
         choice = input("Do you want to continue anyway? (y/n): ")
         if choice.lower() != 'y':
             print("Exiting...")
             return
+    
+    # Ensure direct integration
+    if not ensure_direct_integration():
+        print("Warning: Direct integration setup failed. The web interface may not function properly.")
+        choice = input("Do you want to continue anyway? (y/n): ")
+        if choice.lower() != 'y':
+            print("Exiting...")
+            return
+    
+    # Test SoT integration
+    try:
+        from socratic_clarifier.integrations.sot_integration import SoTIntegration
+        sot = SoTIntegration()
+        if sot.available:
+            print("SoT integration is available and working.")
+        else:
+            print("SoT integration loaded but not available. Will use fallback mechanisms.")
+    except ImportError:
+        print("SoT integration could not be imported. Will use fallback mechanisms.")
     
     # Start web interface
     web_process = start_web_interface()
@@ -113,6 +160,8 @@ def main():
         # Print the URL
         print("\n" + "="*50)
         print("Web interface available at: http://localhost:5000")
+        print("Chat interface at: http://localhost:5000/chat")
+        print("Reflection interface at: http://localhost:5000/reflection")
         print("="*50 + "\n")
         
         # Monitor the web interface process
@@ -123,6 +172,11 @@ def main():
                     break
                 if line:
                     print(line.strip())
+                
+                # Check for errors
+                error = web_process.stderr.readline()
+                if error:
+                    print(f"ERROR: {error.strip()}")
         except KeyboardInterrupt:
             print("\nStopping services...")
         finally:

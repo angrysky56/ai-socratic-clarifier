@@ -22,43 +22,41 @@ except ImportError:
     SOT_REASONING_AVAILABLE = False
 from socratic_clarifier.modes.mode_manager import ModeManager
 
-# Try to import MCP Sequential Thinking adapter
+# Try to import SoT
 def import_sot():
-    """Try to import SoT adapter and handle any import errors."""
+    """Try to import SoT and handle any import errors."""
     try:
-        # Try to import the MCP Sequential Thinking adapter
-        from socratic_clarifier.integrations.mcp_sequential_thinking import MCPSequentialThinking
-        logger.info("Successfully imported MCP Sequential Thinking adapter")
-        return True, MCPSequentialThinking
+        # First try to import our custom SoT integration
+        from socratic_clarifier.integrations.sot_integration import SoTIntegration
+        logger.info("Successfully imported SoT integration")
+        return True, SoTIntegration
     except ImportError as e:
-        logger.warning(f"Could not import MCP Sequential Thinking adapter: {e}")
-        return False, None
-
-# Try to import the MCP Sequential Thinking adapter first
-SOT_AVAILABLE, SoT_class = import_sot()
-
-# If MCP adapter is not available, try the Python library
-if not SOT_AVAILABLE:
-    try:
-        # Ensure module is not cached if previous import failed
-        if "sketch_of_thought" in sys.modules:
-            del sys.modules["sketch_of_thought"]
+        logger.warning(f"Could not import SoT integration: {e}")
             
-        from sketch_of_thought import SoT
-        logger.info("Successfully imported Sketch-of-Thought package")
-        SOT_AVAILABLE, SoT_class = True, SoT
-    except ImportError as e:
-        logger.warning(f"Could not import Sketch-of-Thought: {e}")
-        SOT_AVAILABLE, SoT_class = False, None
+        # Finally, try to import the original Sketch-of-Thought package
+        try:
+            # Ensure module is not cached if previous import failed
+            if "sketch_of_thought" in sys.modules:
+                del sys.modules["sketch_of_thought"]
+                
+            from sketch_of_thought import SoT
+            logger.info("Successfully imported Sketch-of-Thought package")
+            return True, SoT
+        except ImportError as e:
+            logger.warning(f"Could not import Sketch-of-Thought: {e}")
+            return False, None
+
+# Try to import SoT
+SOT_AVAILABLE, SoT_class = import_sot()
 
 # Create a local fallback implementation if neither is available
 if not SOT_AVAILABLE:
     
     class SoT:
-        """Local implementation of SoT functionality when neither MCP nor the package is available."""
+        """Local implementation of SoT functionality when neither the package is available."""
         
         def __init__(self):
-            logger.warning("Using fallback SoT implementation. For full functionality, ensure MCP Sequential Thinking or SoT package is available.")
+            logger.warning("Using fallback SoT implementation. For full functionality, ensure the SoT package is available.")
         
         def classify_question(self, text):
             """Classify question to determine reasoning paradigm."""
@@ -289,6 +287,11 @@ class SocraticClarifier:
             confidence=confidence
         )
     
+    def analyze_question(self, text: str) -> Dict:
+        """Analyze a question and return the results as a dictionary."""
+        analysis = self.analyze(text)
+        return analysis.dict()
+    
     def available_modes(self) -> List[str]:
         """Return a list of available operating modes."""
         return self.mode_manager.available_modes()
@@ -317,3 +320,15 @@ class SocraticClarifier:
         
         self.sot_paradigm_override = paradigm
         logger.info(f"SoT paradigm override set to: {paradigm}")
+    
+    def process(self, question: str) -> Dict:
+        """Process a question and return comprehensive results."""
+        analysis = self.analyze(question)
+        
+        return {
+            "original_question": question,
+            "analysis": analysis.dict(),
+            "clarification": "Processed with base clarifier.",
+            "socratic_questions": analysis.questions,
+            "processed_with": "base"
+        }

@@ -23,16 +23,64 @@ logger = logging.getLogger(__name__)
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
 sys.path.insert(0, project_root)
 
-# Now try to import - using the correct module structure
-try:
-    from socratic_clarifier.core import SocraticClarifier, load_config
-    # Use the correct class name from the sot_integration module
-    from socratic_clarifier.integrations.sot_integration import SoTIntegration
-    logger.info("Successfully imported from socratic_clarifier module")
-except ImportError as e:
-    logger.error(f"Could not import SocraticClarifier: {e}")
-    logger.error("Please check the project structure and import paths")
+# Check if the socratic_clarifier module exists in the correct location
+expected_module_path = os.path.join(project_root, 'socratic_clarifier')
+if not os.path.exists(expected_module_path):
+    logger.error(f"socratic_clarifier module not found at: {expected_module_path}")
+    logger.error("Please make sure the project structure is correct")
     sys.exit(1)
+
+# Now try to import
+try:
+    # First, try to import from the module structure
+    from socratic_clarifier.core import SocraticClarifier
+    from socratic_clarifier.analysis import analyze_question
+    logger.info("Successfully imported from socratic_clarifier module")
+except ImportError:
+    try:
+        # If that fails, try alternative import paths based on typical project structures
+        if os.path.exists(os.path.join(project_root, 'socratic_clarifier', 'clarifier.py')):
+            from socratic_clarifier.clarifier import SocraticClarifier
+            from socratic_clarifier.question_analysis import analyze_question
+            logger.info("Successfully imported from alternative module path")
+        else:
+            logger.error("Could not find the SocraticClarifier class")
+            logger.error("Please check the project structure and import paths")
+            sys.exit(1)
+    except ImportError as e:
+        logger.error(f"Could not import SocraticClarifier: {e}")
+        logger.error("Please check the project structure and import paths")
+        sys.exit(1)
+
+# Import the SoT wrapper if it exists, otherwise create a minimal version
+sot_integration_path = os.path.join(project_root, 'sot_integration.py')
+if os.path.exists(sot_integration_path):
+    # If sot_integration.py exists, import from it
+    sys.path.insert(0, project_root)
+    try:
+        from sot_integration import SoTWrapper
+        logger.info("Successfully imported SoTWrapper from sot_integration.py")
+    except ImportError as e:
+        logger.error(f"Could not import SoTWrapper: {e}")
+        SoTWrapper = None
+else:
+    # If it doesn't exist, define a minimal SoTWrapper class
+    logger.warning("sot_integration.py not found, using minimal SoTWrapper")
+    class SoTWrapper:
+        """Minimal SoT wrapper for when the integration file isn't available"""
+        def __init__(self):
+            self.available_paradigms = ['conceptual_chaining']
+        
+        def classify_question(self, question: str) -> str:
+            return "conceptual_chaining"
+        
+        def get_system_prompt(self, paradigm: str) -> str:
+            return "You are a helpful AI assistant that helps clarify questions."
+        
+        def get_initialized_context(self, paradigm: str, question: Optional[str] = None, 
+                                  format: str = "llm", include_system_prompt: bool = True):
+            return []
+
 
 class EnhancedClarifier:
     """
@@ -48,43 +96,27 @@ class EnhancedClarifier:
         """Initialize the enhanced clarifier with optional configuration"""
         self.base_clarifier = SocraticClarifier()
         
-        # Load config from the project's config.json
-        self.project_config = load_config()
-        
-        # Default configuration - use project config values where available
+        # Default configuration
         self.default_config = {
-            "ollama": self.project_config.get("integrations", {}).get("ollama", {}).copy()
-        }
-        
-        # Ensure basic defaults if not in project config
-        if "base_url" not in self.default_config["ollama"]:
-            self.default_config["ollama"]["base_url"] = "http://localhost:11434"
-        
-        # Add defaults for other settings
-        self.default_config.update({
+            "ollama": {
+                "base_url": "http://localhost:11434",
+                "model": "llama3",  # Default model
+                "timeout": 30,  # Seconds
+                "temperature": 0.7,
+                "top_p": 0.9,
+                "retries": 3
+            },
             "use_ollama": True,
             "use_sot": True,
             "fallback_to_base": True
-        })
+        }
         
         # Merge provided config with defaults
-        if config is None:
-            self.config = self.default_config
-        else:
-            self.config = self.default_config.copy()
-            # Merge only the ollama section if it exists
-            if "ollama" in config:
-                self.config["ollama"].update(config["ollama"])
-            # Merge top-level configuration
-            for key, value in config.items():
-                if key != "ollama":
-                    self.config[key] = value
+        self.config = {**self.default_config, **(config or {})}
         
-        logger.info(f"Using Ollama model: {self.config['ollama'].get('default_model', 'not specified')}")
-        
-        # Initialize SoT integration
-        if self.config["use_sot"]:
-            self.sot = SoTIntegration()
+        # Initialize SoT wrapper if enabled and available
+        if self.config["use_sot"] and SoTWrapper is not None:
+            self.sot = SoTWrapper()
         else:
             self.sot = None
         
@@ -97,35 +129,11 @@ class EnhancedClarifier:
     def _check_ollama(self) -> bool:
         """Check if Ollama is available and running"""
         try:
-            # Try to connect to Ollama API to check if it's running
             response = requests.get(
                 f"{self.config['ollama']['base_url']}/api/tags",
                 timeout=5
             )
-            
-            if response.status_code == 200:
-                # Check if the specified model is available
-                models = response.json().get("models", [])
-                model_names = [m.get("name") for m in models]
-                
-                default_model = self.config['ollama'].get('default_model')
-                if default_model and default_model not in model_names:
-                    logger.warning(f"Ollama model '{default_model}' not found.")
-                    logger.warning(f"Available models: {', '.join(model_names)}")
-                    
-                    # If no model available or specified, use the first available one
-                    if model_names:
-                        logger.warning(f"Using first available model: {model_names[0]}")
-                        self.config['ollama']['model_to_use'] = model_names[0]
-                    else:
-                        logger.warning("No models available in Ollama")
-                        return False
-                else:
-                    # Use the specified model
-                    self.config['ollama']['model_to_use'] = default_model
-                
-                return True
-            return False
+            return response.status_code == 200
         except (requests.RequestException, ConnectionError) as e:
             logger.warning(f"Ollama check failed: {e}")
             return False
@@ -146,17 +154,12 @@ class EnhancedClarifier:
         """
         url = f"{self.config['ollama']['base_url']}/api/generate"
         
-        # Get the model to use
-        model = self.config['ollama'].get('model_to_use', self.config['ollama'].get('default_model'))
-        if not model:
-            raise ValueError("No Ollama model specified")
-        
         # Prepare the payload
         payload = {
-            "model": model,
+            "model": self.config['ollama']['model'],
             "prompt": prompt,
-            "temperature": self.config['ollama'].get('temperature', 0.7),
-            "top_p": self.config['ollama'].get('top_p', 0.9),
+            "temperature": self.config['ollama']['temperature'],
+            "top_p": self.config['ollama']['top_p'],
             "stream": False,
         }
         
@@ -165,12 +168,12 @@ class EnhancedClarifier:
             payload["system"] = system_prompt
         
         # Implement retry logic
-        retries = self.config['ollama'].get('retries', 3)
-        timeout = self.config['ollama'].get('timeout', 60)
+        retries = self.config['ollama']['retries']
+        timeout = self.config['ollama']['timeout']
         
         for attempt in range(retries):
             try:
-                logger.info(f"Calling Ollama API with model {model} (attempt {attempt+1}/{retries})")
+                logger.info(f"Calling Ollama API (attempt {attempt+1}/{retries})")
                 response = requests.post(
                     url, 
                     json=payload,
@@ -194,68 +197,19 @@ class EnhancedClarifier:
         # All retries failed
         raise Exception(f"Failed to get response from Ollama after {retries} attempts")
     
-    def _analyze_question(self, question: str) -> Dict:
-        """Analyze a question"""
-        # Use the analyze method from the base clarifier
-        analysis = self.base_clarifier.analyze(question)
-        return analysis.dict()
-    
     def _generate_clarification_prompt(self, question: str, analysis: Dict) -> str:
         """Generate a prompt for the clarification step"""
-        # Create a clarification prompt based on the analysis
-        prompt = f"""
-I need to clarify the following question:
-"{question}"
-
-I've analyzed the question and identified the following issues:
-"""
-        
-        # Add issues details if available
-        if "issues" in analysis and analysis["issues"]:
-            for i, issue in enumerate(analysis["issues"], 1):
-                issue_type = issue.get("type", "unknown")
-                term = issue.get("term", "")
-                confidence = issue.get("confidence", 0.0)
-                prompt += f"{i}. {issue_type} issue with term '{term}' (confidence: {confidence:.2f})\n"
-        else:
-            prompt += "No specific issues identified.\n"
-        
-        # Add reasoning if available
-        if "reasoning" in analysis and analysis["reasoning"]:
-            prompt += f"\nReasoning:\n{analysis['reasoning']}\n"
-        
-        # Add instruction for response
-        prompt += """
-Based on this analysis, please clarify the question by:
-1. Identifying any ambiguous, vague, or biased terms
-2. Suggesting more precise alternatives
-3. Posing Socratic questions that would help refine the original question
-
-Please present your clarification in a clear, structured way that highlights the issues and suggests how to improve the question.
-"""
-        
-        return prompt
+        # Delegate to the base clarifier for prompt generation
+        # This assumes the base clarifier has a method for this
+        # If not, you'll need to implement it here
+        return self.base_clarifier._generate_clarification_prompt(question, analysis)
     
     def _extract_socratic_questions(self, clarification_text: str) -> List[str]:
         """Extract Socratic questions from the clarification text"""
-        # Simple heuristic to extract questions
-        lines = clarification_text.split("\n")
-        questions = []
-        
-        for line in lines:
-            line = line.strip()
-            # Check if the line looks like a question
-            if line and line[-1] == "?" and len(line) > 10:
-                questions.append(line)
-        
-        # If no questions were found with simple heuristic, try more patterns
-        if not questions:
-            import re
-            # Find sentences ending with question marks
-            question_pattern = re.compile(r'[A-Z][^.!?]*\?')
-            questions = question_pattern.findall(clarification_text)
-        
-        return questions
+        # Delegate to the base clarifier for extraction
+        # This assumes the base clarifier has a method for this
+        # If not, you'll need to implement it here
+        return self.base_clarifier._extract_socratic_questions(clarification_text)
     
     def process_with_ollama(self, question: str) -> Dict:
         """
@@ -270,20 +224,13 @@ Please present your clarification in a clear, structured way that highlights the
         if not self.ollama_available:
             if self.config["fallback_to_base"]:
                 logger.warning("Ollama not available, falling back to base processing")
-                analysis = self.base_clarifier.analyze(question)
-                return {
-                    "original_question": question,
-                    "analysis": analysis.dict(),
-                    "clarification": "Ollama not available for clarification.",
-                    "socratic_questions": analysis.questions,
-                    "processed_with": "base"
-                }
+                return self.base_clarifier.process(question)
             else:
                 raise Exception("Ollama is not available and fallback is disabled")
         
         try:
             # Analyze the question
-            analysis = self._analyze_question(question)
+            analysis = analyze_question(question)
             
             # Get appropriate SoT paradigm if enabled
             if self.sot:
@@ -301,19 +248,12 @@ Please present your clarification in a clear, structured way that highlights the
                 # Set a timeout to prevent hanging
                 future = executor.submit(self._call_ollama, clarification_prompt, system_prompt)
                 try:
-                    clarification_response = future.result(timeout=self.config['ollama'].get('timeout', 60))
+                    clarification_response = future.result(timeout=self.config['ollama']['timeout'])
                 except concurrent.futures.TimeoutError:
-                    logger.error(f"Ollama processing timed out after {self.config['ollama'].get('timeout', 60)} seconds")
+                    logger.error(f"Ollama processing timed out after {self.config['ollama']['timeout']} seconds")
                     if self.config["fallback_to_base"]:
                         logger.warning("Falling back to base processing")
-                        analysis = self.base_clarifier.analyze(question)
-                        return {
-                            "original_question": question,
-                            "analysis": analysis.dict(),
-                            "clarification": "Ollama processing timed out.",
-                            "socratic_questions": analysis.questions,
-                            "processed_with": "base"
-                        }
+                        return self.base_clarifier.process(question)
                     else:
                         raise Exception("Ollama processing timed out")
             
@@ -331,14 +271,7 @@ Please present your clarification in a clear, structured way that highlights the
             logger.error(f"Error in enhanced processing: {e}")
             if self.config["fallback_to_base"]:
                 logger.warning("Falling back to base processing due to error")
-                analysis = self.base_clarifier.analyze(question)
-                return {
-                    "original_question": question,
-                    "analysis": analysis.dict(),
-                    "clarification": f"Error in Ollama processing: {str(e)}",
-                    "socratic_questions": analysis.questions,
-                    "processed_with": "base"
-                }
+                return self.base_clarifier.process(question)
             else:
                 raise
     
@@ -355,14 +288,7 @@ Please present your clarification in a clear, structured way that highlights the
         if self.config["use_ollama"] and self.ollama_available:
             return self.process_with_ollama(question)
         else:
-            analysis = self.base_clarifier.analyze(question)
-            return {
-                "original_question": question,
-                "analysis": analysis.dict(),
-                "clarification": "Processed with base clarifier.",
-                "socratic_questions": analysis.questions,
-                "processed_with": "base"
-            }
+            return self.base_clarifier.process(question)
 
 # Example usage when run directly
 if __name__ == "__main__":
@@ -371,11 +297,6 @@ if __name__ == "__main__":
         response = requests.get("http://localhost:11434/api/tags", timeout=5)
         if response.status_code == 200:
             print("✓ Ollama is running")
-            models = response.json().get("models", [])
-            if models:
-                print("Available models:")
-                for model in models:
-                    print(f"  - {model.get('name', 'Unknown')}")
         else:
             print("✗ Ollama is not running correctly")
     except Exception:

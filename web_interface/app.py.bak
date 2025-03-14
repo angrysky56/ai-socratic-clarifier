@@ -17,7 +17,6 @@ from flask import Flask, render_template, request, jsonify
 from socratic_clarifier import SocraticClarifier
 from web_interface.api_settings import setup_api_routes
 from web_interface import direct_integration
-from web_interface.routes_reflective import reflective_bp
 
 def load_custom_patterns():
     """Load custom patterns from the custom_patterns directory if available."""
@@ -135,9 +134,6 @@ if custom_patterns:
 # Set up the API routes for settings
 setup_api_routes(app, config, clarifier)
 
-# Register the reflective ecosystem blueprint
-app.register_blueprint(reflective_bp)
-
 # Add a navbar to the index page with a link to the settings page
 @app.route('/', methods=['GET'])
 def index():
@@ -147,11 +143,7 @@ def index():
 @app.route('/reflection', methods=['GET'])
 def reflection():
     """Render the reflective ecosystem interface."""
-    # Check if the reflective ecosystem is available
-    status = direct_integration.get_reflective_ecosystem_status()
-    return render_template('reflection.html', 
-                           modes=clarifier.available_modes(),
-                           reflective_ecosystem=status)
+    return render_template('reflection.html', modes=clarifier.available_modes())
 
 @app.route('/chat', methods=['GET'])
 def chat():
@@ -325,13 +317,13 @@ def feedback():
         question = data.get('question', '')
         helpful = data.get('helpful', False)
         issue_type = data.get('issue_type', '')
-        paradigm = data.get('paradigm')
         
-        # Log the feedback
+        # In a real implementation, this would store feedback in a database
+        # For this example, we'll just print it
         print(f"Feedback received: Question '{question}' was {'helpful' if helpful else 'not helpful'}")
-        print(f"Issue type: {issue_type}, Paradigm: {paradigm}")
+        print(f"Issue type: {issue_type}")
         
-        # Log to file
+        # Log the feedback (in a real app, save to database)
         feedback_dir = Path(__file__).parent / 'feedback'
         feedback_dir.mkdir(exist_ok=True)
         
@@ -339,20 +331,11 @@ def feedback():
             f.write(f"Question: {question}\n")
             f.write(f"Helpful: {helpful}\n")
             f.write(f"Issue Type: {issue_type}\n")
-            f.write(f"Paradigm: {paradigm}\n")
             f.write("-" * 50 + "\n")
         
-        # Process through reflective ecosystem if available
-        reflective_success = direct_integration.process_feedback(question, helpful, paradigm)
-        
-        return jsonify({
-            'success': True,
-            'reflective_processed': reflective_success
-        })
+        return jsonify({'success': True})
     except Exception as e:
-        error_traceback = traceback.format_exc()
-        logger.error(f"Error processing feedback: {e}\n{error_traceback}")
-        return jsonify({'error': str(e), 'traceback': error_traceback}), 500
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/test', methods=['GET'])
 def test_api():

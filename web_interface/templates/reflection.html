@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resonance-Based Reflection - AI-Socratic-Clarifier</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        .highlight {
+            background-color: #ffe6e6;
+            padding: 2px;
+            border-radius: 3px;
+        }
+        .reasoning-box {
+            background-color: #f8f9fa;
+            border-left: 4px solid #007bff;
+            padding: 10px;
+            margin-bottom: 15px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .question-item {
+            padding: 10px;
+            margin-bottom: 8px;
+            border-left: 3px solid #28a745;
+            background-color: #f8fff8;
+        }
+        .feedback-btn {
+            margin-right: 5px;
+            font-size: 0.8rem;
+        }
+        .issue-badge {
+            margin-right: 5px;
+        }
+        
+        #resonanceVisualizer {
+            background-color: #000;
+            border-radius: 8px;
+            height: 150px;
+            width: 100%;
+            margin-top: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .resonance-wave {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.7;
+        }
+        
+        .resonance-node {
+            position: absolute;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+            transition: all 0.5s ease;
+        }
+        
+        .resonance-connection {
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.4);
+            transform-origin: 0 0;
+            z-index: 0;
+        }
+        
+        .resonance-info {
+            color: #fff;
+            font-family: monospace;
+            font-size: 12px;
+            position: absolute;
+            bottom: 5px;
+            right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="mb-4">Resonance-Based Reflection</h1>
+        
+        <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="/">Socratic Clarifier</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/">Home</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/chat">Chat</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="/reflection">Reflection</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/settings">Settings</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+        
+        <p class="lead">
+            Experience AI reflection through dynamic resonance fields. This interface demonstrates how the Reflective Ecosystem adapts to different reasoning tasks.
+        </p>
+        
+        <div class="row mb-4">
+            <div class="col-md-9">
+                <div class="form-group">
+                    <label for="textInput" class="form-label">Text to Analyze with Resonance-Based Reflection</label>
+                    <textarea id="textInput" class="form-control" rows="5" placeholder="Enter text to analyze with resonance-based reasoning..."></textarea>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label for="modeSelect" class="form-label">Operating Mode</label>
+                    <select id="modeSelect" class="form-select">
+                        {% for mode in modes %}
+                        <option value="{{ mode }}">{{ mode|capitalize }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group mt-3">
+                    <label for="resonanceLevel" class="form-label">Global Resonance Level: <span id="resonanceValue">1.0</span></label>
+                    <input type="range" class="form-range" min="0" max="1" step="0.05" value="1" id="resonanceLevel">
+                </div>
+                <button id="analyzeBtn" class="btn btn-primary mt-3 w-100">Analyze with Reflective Ecosystem</button>
+            </div>
+        </div>
+        
+        <div id="resonanceVisualizer">
+            <div class="resonance-wave"></div>
+            <div class="resonance-info">Global Resonance: 1.0</div>
+        </div>
+        
+        <div id="resultsSection" class="d-none mt-4">
+            <h3>Resonance-Enhanced Analysis</h3>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Detected Issues</h5>
+                            <span class="badge bg-primary" id="issueResonance">Resonance: 0.0</span>
+                        </div>
+                        <div class="card-body">
+                            <div id="issuesList"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Reflective Reasoning</h5>
+                            <span class="badge bg-info text-dark" id="reasoningResonance">Resonance: 0.0</span>
+                        </div>
+                        <div class="card-body">
+                            <div id="reasoningBox" class="reasoning-box"></div>
+                            <div id="paradigmInfo" class="text-muted small" data-paradigm=""></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Resonance-Modulated Questions</h5>
+                    <span class="badge bg-success" id="questionResonance">Resonance: 0.0</span>
+                </div>
+                <div class="card-body">
+                    <div id="questionsList"></div>
+                </div>
+            </div>
+            
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5>Resonance Feedback</h5>
+                </div>
+                <div class="card-body">
+                    <p>Provide feedback to adjust the resonance field:</p>
+                    <div class="d-flex justify-content-center mb-3">
+                        <button id="decreaseResonanceBtn" class="btn btn-outline-danger mx-2">Decrease Resonance</button>
+                        <button id="increaseResonanceBtn" class="btn btn-outline-success mx-2">Increase Resonance</button>
+                    </div>
+                    <div class="progress">
+                        <div id="feedbackProgress" class="progress-bar bg-info" role="progressbar" style="width: 50%;">50%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="loadingIndicator" class="text-center d-none">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Resonating...</span>
+            </div>
+            <p>Establishing resonance fields...</p>
+        </div>
+        
+        <div id="errorAlert" class="alert alert-danger d-none">
+            <strong>Resonance Disruption:</strong> <span id="errorMessage"></span>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Function to send feedback to the reflective ecosystem
+        function sendFeedback(question, helpful) {
+            fetch('/api/reflective/feedback', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    question: question,
+                    helpful: helpful,
+                    paradigm: document.getElementById('paradigmInfo').dataset.paradigm || null
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Feedback sent:', data);
+            })
+            .catch(error => {
+                console.error('Error sending feedback:', error);
+            });
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            const textInput = document.getElementById('textInput');
+            const modeSelect = document.getElementById('modeSelect');
+            const resonanceLevel = document.getElementById('resonanceLevel');
+            const resonanceValue = document.getElementById('resonanceValue');
+            const resultsSection = document.getElementById('resultsSection');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const errorAlert = document.getElementById('errorAlert');
+            const errorMessage = document.getElementById('errorMessage');
+            const issuesList = document.getElementById('issuesList');
+            const questionsList = document.getElementById('questionsList');
+            const reasoningBox = document.getElementById('reasoningBox');
+            const paradigmInfo = document.getElementById('paradigmInfo');
+            const issueResonance = document.getElementById('issueResonance');
+            const reasoningResonance = document.getElementById('reasoningResonance');
+            const questionResonance = document.getElementById('questionResonance');
+            const decreaseResonanceBtn = document.getElementById('decreaseResonanceBtn');
+            const increaseResonanceBtn = document.getElementById('increaseResonanceBtn');
+            const feedbackProgress = document.getElementById('feedbackProgress');
+            const resonanceInfo = document.querySelector('.resonance-info');
+            
+            // Initialize resonance visualizer
+            initResonanceVisualizer();
+            
+            // Get initial status from the reflective ecosystem
+            getReflectiveStatus();
+            
+            // Resonance level slider
+            resonanceLevel.addEventListener('input', function() {
+                const value = parseFloat(this.value);
+                resonanceValue.textContent = value.toFixed(1);
+                resonanceInfo.textContent = `Global Resonance: ${value.toFixed(1)}`;
+                updateResonanceVisualizer(value);
+            });
+            
+            // Analyze button
+            analyzeBtn.addEventListener('click', function() {
+                const text = textInput.value.trim();
+                if (!text) {
+                    showError('Please enter some text to analyze with resonance-based reflection.');
+                    return;
+                }
+                
+                const mode = modeSelect.value;
+                const resonance = parseFloat(resonanceLevel.value);
+                analyzeText(text, mode, resonance);
+            });
+            
+            // Decrease resonance button
+            decreaseResonanceBtn.addEventListener('click', function() {
+                const currentValue = parseFloat(resonanceLevel.value);
+                const newValue = Math.max(0, currentValue - 0.1);
+                resonanceLevel.value = newValue;
+                resonanceValue.textContent = newValue.toFixed(1);
+                resonanceInfo.textContent = `Global Resonance: ${newValue.toFixed(1)}`;
+                updateResonanceVisualizer(newValue);
+                updateFeedbackProgress(newValue);
+                
+                // Send feedback to the reflective ecosystem
+                const lastQuestion = questionsList.querySelector('.question-item:first-child');
+                if (lastQuestion) {
+                    const questionText = lastQuestion.textContent.trim();
+                    sendFeedback(questionText, false);
+                }
+            });
+            
+            // Increase resonance button
+            increaseResonanceBtn.addEventListener('click', function() {
+                const currentValue = parseFloat(resonanceLevel.value);
+                const newValue = Math.min(1, currentValue + 0.1);
+                resonanceLevel.value = newValue;
+                resonanceValue.textContent = newValue.toFixed(1);
+                resonanceInfo.textContent = `Global Resonance: ${newValue.toFixed(1)}`;
+                updateResonanceVisualizer(newValue);
+                updateFeedbackProgress(newValue);
+                
+                // Send feedback to the reflective ecosystem
+                const lastQuestion = questionsList.querySelector('.question-item:first-child');
+                if (lastQuestion) {
+                    const questionText = lastQuestion.textContent.trim();
+                    sendFeedback(questionText, true);
+                }
+            });
+            
+            function analyzeText(text, mode, resonance) {
+                // Reset previous results
+                resultsSection.classList.add('d-none');
+                errorAlert.classList.add('d-none');
+                loadingIndicator.classList.remove('d-none');
+                
+                // Call the reflective ecosystem API
+                fetch('/api/reflective/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        text: text,
+                        mode: mode,
+                        use_sot: true,
+                        resonance: resonance
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    loadingIndicator.classList.add('d-none');
+                    
+                    if (data.error) {
+                        showError(data.error);
+                        return;
+                    }
+                    
+                    // Process the results
+                    const result = {
+                        issues: data.issues || [],
+                        questions: data.questions || [],
+                        reasoning: data.reasoning,
+                        sot_paradigm: data.sot_paradigm,
+                        resonance: {
+                            issues: resonance,
+                            reasoning: resonance,
+                            questions: resonance
+                        }
+                    };
+                    
+                    // Store the paradigm for feedback
+                    if (data.sot_paradigm) {
+                        paradigmInfo.textContent = `Paradigm: ${data.sot_paradigm}`;
+                        paradigmInfo.dataset.paradigm = data.sot_paradigm;
+                    } else {
+                        paradigmInfo.textContent = '';
+                        paradigmInfo.dataset.paradigm = '';
+                    }
+                    
+                    // Display the results
+                    displayResults(result, text, resonance);
+                })
+                .catch(error => {
+                    loadingIndicator.classList.add('d-none');
+                    showError('Error analyzing text: ' + error.message);
+                });
+            }
+            
+            // Function for getting status from the reflective ecosystem
+            function getReflectiveStatus() {
+                fetch('/api/reflective/status')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.available) {
+                            // Update the interface with real stats
+                            resonanceLevel.value = data.global_coherence;
+                            resonanceValue.textContent = data.global_coherence.toFixed(1);
+                            resonanceInfo.textContent = `Global Resonance: ${data.global_coherence.toFixed(1)}`;
+                            updateResonanceVisualizer(data.global_coherence);
+                            
+                            // Show a message about the real ecosystem
+                            console.log('Reflective ecosystem available:', data);
+                        } else {
+                            console.log('Reflective ecosystem not available:', data.reason);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error getting reflective status:', error);
+                    });
+            }
+            
+            function displayResults(data, text, globalResonance) {
+                // Display issues
+                issuesList.innerHTML = '';
+                if (data.issues && data.issues.length > 0) {
+                    const issuesHtml = data.issues.map((issue, index) => {
+                        let badgeClass = 'bg-secondary';
+                        if (issue.issue && issue.issue.includes('bias')) badgeClass = 'bg-danger';
+                        if (issue.issue && issue.issue.includes('vague')) badgeClass = 'bg-warning text-dark';
+                        if (issue.issue && issue.issue.includes('absolute')) badgeClass = 'bg-info text-dark';
+                        
+                        return `
+                            <div class="mb-3">
+                                <span class="badge ${badgeClass} issue-badge">${issue.issue || 'unknown'}</span>
+                                <strong>"${issue.term}"</strong> - 
+                                <span class="text-muted small">(${Math.round((issue.confidence || 0) * 100)}% resonance)</span>
+                                <div>${issue.description || ''}</div>
+                            </div>
+                        `;
+                    }).join('');
+                    
+                    issuesList.innerHTML = issuesHtml;
+                    issueResonance.textContent = `Resonance: ${data.resonance.issues.toFixed(1)}`;
+                } else {
+                    issuesList.innerHTML = '<div class="alert alert-success">No issues detected in resonance field.</div>';
+                    issueResonance.textContent = 'Resonance: 0.0';
+                }
+                
+                // Display reasoning
+                if (data.reasoning) {
+                    reasoningBox.textContent = data.reasoning;
+                    reasoningResonance.textContent = `Resonance: ${data.resonance.reasoning.toFixed(1)}`;
+                } else {
+                    reasoningBox.textContent = 'Insufficient resonance for reasoning generation.';
+                    reasoningResonance.textContent = 'Resonance: 0.0';
+                }
+                
+                // Display questions
+                questionsList.innerHTML = '';
+                if (data.questions && data.questions.length > 0) {
+                    // Apply resonance to question display
+                    const resonancePrefix = globalResonance > 0.7 ? '(Deep Inquiry) ' : 
+                                            globalResonance > 0.4 ? '' : '(Surface Inquiry) ';
+                    
+                    const questionsHtml = data.questions.map((question, index) => {
+                        // Escape single quotes for JavaScript
+                        const escapedQuestion = question.replace(/'/g, "\\'");
+                        
+                        // Add feedback buttons to each question
+                        return `
+                            <div class="question-item" data-question="${question}">
+                                <div>${resonancePrefix}${question}</div>
+                                <div class="mt-2">
+                                    <button class="btn btn-sm btn-outline-success feedback-btn" onclick="sendFeedback('${escapedQuestion}', true)">
+                                        <i class="bi bi-hand-thumbs-up"></i> Helpful
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger feedback-btn" onclick="sendFeedback('${escapedQuestion}', false)">
+                                        <i class="bi bi-hand-thumbs-down"></i> Not Helpful
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                    
+                    questionsList.innerHTML = questionsHtml;
+                    questionResonance.textContent = `Resonance: ${data.resonance.questions.toFixed(1)}`;
+                } else {
+                    questionsList.innerHTML = '<div class="alert alert-info">No questions generated in resonance field.</div>';
+                    questionResonance.textContent = 'Resonance: 0.0';
+                }
+                
+                // Update feedback progress
+                updateFeedbackProgress(globalResonance);
+                
+                // Show results section
+                resultsSection.classList.remove('d-none');
+            }
+            
+            function showError(message) {
+                errorMessage.textContent = message;
+                errorAlert.classList.remove('d-none');
+            }
+            
+            function updateFeedbackProgress(value) {
+                const percentage = Math.round(value * 100);
+                feedbackProgress.style.width = `${percentage}%`;
+                feedbackProgress.textContent = `${percentage}%`;
+            }
+            
+            function initResonanceVisualizer() {
+                const visualizer = document.getElementById('resonanceVisualizer');
+                
+                // Create nodes
+                for (let i = 0; i < 5; i++) {
+                    const node = document.createElement('div');
+                    node.className = 'resonance-node';
+                    node.style.width = `${8 + Math.random() * 10}px`;
+                    node.style.height = node.style.width;
+                    node.style.left = `${10 + Math.random() * 80}%`;
+                    node.style.top = `${10 + Math.random() * 70}%`;
+                    visualizer.appendChild(node);
+                }
+                
+                // Create connections between nodes
+                const nodes = visualizer.querySelectorAll('.resonance-node');
+                for (let i = 0; i < nodes.length; i++) {
+                    for (let j = i + 1; j < nodes.length; j++) {
+                        if (Math.random() > 0.3) {
+                            createConnection(nodes[i], nodes[j], visualizer);
+                        }
+                    }
+                }
+                
+                // Initial update
+                updateResonanceVisualizer(1.0);
+            }
+            
+            function createConnection(node1, node2, container) {
+                const connection = document.createElement('div');
+                connection.className = 'resonance-connection';
+                
+                const rect1 = node1.getBoundingClientRect();
+                const rect2 = node2.getBoundingClientRect();
+                const containerRect = container.getBoundingClientRect();
+                
+                const x1 = rect1.left + rect1.width / 2 - containerRect.left;
+                const y1 = rect1.top + rect1.height / 2 - containerRect.top;
+                const x2 = rect2.left + rect2.width / 2 - containerRect.left;
+                const y2 = rect2.top + rect2.height / 2 - containerRect.top;
+                
+                const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+                const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+                
+                connection.style.width = `${length}px`;
+                connection.style.height = '1px';
+                connection.style.left = `${x1}px`;
+                connection.style.top = `${y1}px`;
+                connection.style.transform = `rotate(${angle}deg)`;
+                
+                container.appendChild(connection);
+            }
+            
+            function updateResonanceVisualizer(value) {
+                const visualizer = document.getElementById('resonanceVisualizer');
+                const nodes = visualizer.querySelectorAll('.resonance-node');
+                const connections = visualizer.querySelectorAll('.resonance-connection');
+                
+                // Update nodes
+                nodes.forEach(node => {
+                    const size = 8 + Math.random() * 10 * value;
+                    node.style.width = `${size}px`;
+                    node.style.height = `${size}px`;
+                    node.style.boxShadow = `0 0 ${10 * value}px ${5 * value}px rgba(255, 255, 255, ${0.4 * value})`;
+                });
+                
+                // Update connections
+                connections.forEach(connection => {
+                    connection.style.height = `${1 * value}px`;
+                    connection.style.opacity = 0.4 * value;
+                });
+                
+                // Update wave
+                const wave = visualizer.querySelector('.resonance-wave');
+                wave.style.background = `radial-gradient(circle, rgba(0,123,255,${0.5 * value}) 0%, rgba(0,0,0,0) 70%)`;
+            }
+        });
+    </script>
+</body>
+</html>

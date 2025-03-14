@@ -17,16 +17,6 @@ class SoTReasoningGenerator:
     
     def __init__(self):
         """Initialize the SoT reasoning generator."""
-        # Try to use MCP Sequential Thinking if available
-        try:
-            from socratic_clarifier.integrations.mcp_sequential_thinking import MCPSequentialThinking
-            self.mcp_sot = MCPSequentialThinking()
-            self.use_mcp = self.mcp_sot.available
-            if self.use_mcp:
-                print("Using MCP Sequential Thinking for reasoning generation.")
-        except ImportError:
-            self.use_mcp = False
-            print("MCP Sequential Thinking not available. Using fallback implementation.")
     
     def generate(self, text: str, issues: List[Dict[str, Any]], 
                  paradigm: str = "conceptual_chaining") -> Optional[str]:
@@ -44,14 +34,7 @@ class SoTReasoningGenerator:
         if not issues:
             return None
         
-        # Use MCP Sequential Thinking if available
-        if hasattr(self, 'use_mcp') and self.use_mcp:
-            try:
-                return self.mcp_sot.generate_reasoning(text, issues, paradigm)
-            except Exception as e:
-                print(f"Error using MCP Sequential Thinking: {e}. Falling back to local implementation.")
-        
-        # Fall back to local implementation if MCP is not available or fails
+        # Use local implementation
         if paradigm == "conceptual_chaining":
             return self._generate_conceptual_chaining(text, issues)
         elif paradigm == "chunked_symbolism":
