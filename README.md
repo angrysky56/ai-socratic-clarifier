@@ -31,7 +31,7 @@ For detected issues, it generates thoughtful Socratic questions to help clarify 
 
 - Python 3.8 or higher
 - [Ollama](https://ollama.ai/) installed and running
-- An LLM model like gemma3, llama3, etc. available through Ollama
+- An LLM model like gemma3, llama3, etc. available through Ollama or LM Studio (see [config](https://github.com/angrysky56/ai-socratic-clarifier/blob/main/config.example.json))
 
 ### Installation
 
@@ -79,12 +79,12 @@ Use the advanced reflective ecosystem for deeper analysis with conceptual chaini
 ## Configuration
 
 Configuration settings are stored in `config.json` and can be modified to:
-- Change the Ollama model
+- Change the local model
 - Adjust analysis parameters
 - Configure embedding models
 - Enable/disable specific features
 
-## Customization
+## Customization (currently removed feature as unneeded may re-integrate a version of this)
 
 You can customize issue detection by adding patterns to the `custom_patterns` directory:
 - `vague.json`: Patterns for vague terminology
@@ -96,7 +96,7 @@ You can customize issue detection by adding patterns to the `custom_patterns` di
 
 If you encounter issues:
 
-1. Ensure Ollama is running with `ollama serve`
+1. Ensure Ollama is running with `ollama serve` (or try LM Studio, but untested and may be missing in the startup script, will check later)
 2. Verify the model in your config.json is available in Ollama
 3. Check if your environment has all required dependencies installed
 4. Review the console output for specific error messages
