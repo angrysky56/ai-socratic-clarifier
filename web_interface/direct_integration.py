@@ -10,6 +10,7 @@ import sys
 from typing import List, Dict, Any, Optional
 import re
 from pathlib import Path
+from loguru import logger  # Added import for logger
 
 # Import fallback handlers
 from web_interface.fallback_handlers import create_fallback_issue, extract_issues_via_patterns
@@ -24,9 +25,33 @@ try:
 except ImportError:
     REFLECTIVE_ECOSYSTEM_AVAILABLE = False
 
+# Added initialize_clarifier function
+def initialize_clarifier():
+    """
+    Initialize and return a SocraticClarifier instance.
+    
+    Returns:
+        SocraticClarifier instance or None if not available
+    """
+    try:
+        from socratic_clarifier import SocraticClarifier
+        return SocraticClarifier()
+    except ImportError:
+        logger.warning("SocraticClarifier not available. Using direct integration.")
+        return None
+
 def direct_ollama_generate(prompt, model="deepseek-r1:7b", temperature=0.7, max_tokens=512):
     """
     Generate text using Ollama directly.
+    
+    Args:
+        prompt (str): The prompt to send to Ollama
+        model (str): The model to use
+        temperature (float): Temperature parameter for generation
+        max_tokens (int): Maximum tokens to generate
+        
+    Returns:
+        tuple: (generated_text, full_response)
     """
     try:
         response = requests.post(
@@ -49,6 +74,15 @@ def direct_ollama_generate(prompt, model="deepseek-r1:7b", temperature=0.7, max_
 def direct_ollama_chat(messages, model="deepseek-r1:7b", temperature=0.7, max_tokens=512):
     """
     Generate chat response using Ollama directly.
+    
+    Args:
+        messages (list): List of message dictionaries with role and content
+        model (str): The model to use
+        temperature (float): Temperature parameter for generation
+        max_tokens (int): Maximum tokens to generate
+        
+    Returns:
+        tuple: (generated_text, full_response)
     """
     try:
         response = requests.post(
@@ -68,9 +102,18 @@ def direct_ollama_chat(messages, model="deepseek-r1:7b", temperature=0.7, max_to
     except Exception as e:
         return f"Error: {str(e)}", {}
 
-def generate_socratic_questions(text, issues, sot_paradigm=None):
+def generate_socratic_questions(text, issues, sot_paradigm=None, max_questions=5):
     """
     Generate Socratic questions using direct Ollama integration.
+    
+    Args:
+        text (str): The text to analyze
+        issues (list): List of detected issues
+        sot_paradigm (str, optional): SOT paradigm to use if available
+        max_questions (int, optional): Maximum number of questions to generate
+        
+    Returns:
+        list: Generated questions
     """
     # Try to use the reflective ecosystem if available
     if REFLECTIVE_ECOSYSTEM_AVAILABLE:
@@ -82,22 +125,22 @@ def generate_socratic_questions(text, issues, sot_paradigm=None):
                 issues=issues,
                 original_questions=[],
                 sot_paradigm=sot_paradigm,
-                max_questions=5
+                max_questions=max_questions
             )
             if enhanced_questions:
                 return enhanced_questions
         except Exception as e:
-            print(f"Error using reflective ecosystem: {e}")
+            logger.error(f"Error using reflective ecosystem: {e}")
             # Fall back to standard generation
     
     # Standard Ollama generation as fallback
     # Create a system prompt for the LLM
-    system_prompt = """
+    system_prompt = f"""
     You are a master of Socratic questioning who helps people improve their critical thinking.
     
     Your purpose is to craft precise, thoughtful questions that identify potential issues in people's statements.
     
-    Based on the text and specific issues detected, create 3-5 thought-provoking questions that will:
+    Based on the text and specific issues detected, create {max_questions} thought-provoking questions that will:
     - Encourage the person to recognize their own assumptions
     - Help them examine whether generalizations account for exceptions
     - Prompt consideration of evidence for claims made
@@ -116,7 +159,7 @@ def generate_socratic_questions(text, issues, sot_paradigm=None):
     
     # Add SoT format instructions if enabled
     if sot_paradigm:
-        context += f"\nGenerate questions using the {sot_paradigm} format. Begin with analyzing the issues, then present 3-5 questions.\n"
+        context += f"\nGenerate questions using the {sot_paradigm} format. Begin with analyzing the issues, then present {max_questions} questions.\n"
     
     # Create messages for the chat API
     messages = [
@@ -127,7 +170,7 @@ def generate_socratic_questions(text, issues, sot_paradigm=None):
     # Generate questions using direct Ollama integration
     # Get model from config
     config_path = os.path.join(os.path.dirname(__file__), '..', 'config.json')
-    model = "deepseek-r1:7b"  # Default
+    model = "gemma3:latest"  # Default
     
     if os.path.exists(config_path):
         try:
@@ -155,23 +198,49 @@ def generate_socratic_questions(text, issues, sot_paradigm=None):
     
     if not questions and sot_paradigm:
         # Fallback question if none were extracted
-        questions = [
+        fallback_questions = [
             "How would you define or quantify the terms in your statement?",
             "What evidence supports your assertion?",
             "Have you considered alternative perspectives to this view?"
         ]
+        questions = fallback_questions[:max_questions]
     
-    return questions
+    # Limit to the requested number of questions
+    return questions[:max_questions]
 
-def direct_analyze_text(text, mode="standard", use_sot=True):
+def direct_analyze_text(text, mode="standard", use_sot=True, max_questions=5, document_context=None):
     """
     Analyze text using direct Ollama integration and SoT.
+    
+    Args:
+        text (str): The text to analyze
+        mode (str, optional): Analysis mode (standard or reflective)
+        use_sot (bool, optional): Whether to use SOT if available
+        max_questions (int, optional): Maximum number of questions to generate
+        
+    Returns:
+        dict: Analysis results
     """
+    # Initialize document_context if not provided
+    if document_context is None:
+        document_context = []
+    
+    # Process any document context if provided
+    document_text = ""
+    if document_context:
+        logger.info(f"Processing document context with {len(document_context)} documents")
+        for doc in document_context:
+            if isinstance(doc, dict) and "content" in doc:
+                # Add document content to analysis context
+                content = doc.get("content", "")
+                if content:
+                    document_text += f"\n\nDocument content: {content[:500]}..."
+
     # Use Ollama to detect issues
     prompt = f"""
     You are an expert at identifying issues in statements that could benefit from Socratic questioning.
     
-    Please analyze this text: "{text}"
+    Please analyze this text: "{text}"{document_text}
     
     INSTRUCTIONS:
     - If the statement contains any of the following issues, you MUST identify them:
@@ -205,7 +274,7 @@ def direct_analyze_text(text, mode="standard", use_sot=True):
     
     # Get model from config
     config_path = os.path.join(os.path.dirname(__file__), '..', 'config.json')
-    model = "deepseek-r1:7b"  # Default
+    model = "gemma3:latest"  # Default
     
     if os.path.exists(config_path):
         try:
@@ -253,7 +322,7 @@ def direct_analyze_text(text, mode="standard", use_sot=True):
             response, _ = direct_ollama_generate(prompt, model=model, temperature=0.3, max_tokens=800)
             
     except Exception as e:
-        print(f"Error using chat API: {e}, falling back to generate")
+        logger.error(f"Error using chat API: {e}, falling back to generate")
         # Fallback to original method
         response, _ = direct_ollama_generate(prompt, model=model, temperature=0.3, max_tokens=800)
     
@@ -261,7 +330,7 @@ def direct_analyze_text(text, mode="standard", use_sot=True):
     try:
         # Handle streaming responses where each line might be a JSON object
         if '\n' in response and any('{' in line for line in response.split('\n')):
-            print("Detected potential streaming response format")
+            logger.debug("Detected potential streaming response format")
             # Try to extract JSON from each line
             json_lines = [line for line in response.split('\n') if line.strip()]
             
@@ -273,7 +342,7 @@ def direct_analyze_text(text, mode="standard", use_sot=True):
                     json_end = line.rfind('}') + 1
                     if json_start >= 0 and json_end > json_start:
                         response = line[json_start:json_end]
-                        print("Found complete JSON object in streaming response")
+                        logger.debug("Found complete JSON object in streaming response")
                         break
         
         # Standard JSON extraction
@@ -282,7 +351,7 @@ def direct_analyze_text(text, mode="standard", use_sot=True):
         
         if json_start >= 0 and json_end > json_start:
             json_str = response[json_start:json_end]
-            print(f"Extracted JSON structure starting with: {json_str[:50]}...")
+            logger.debug(f"Extracted JSON structure starting with: {json_str[:50]}...")
             
             # Try to clean up and fix common JSON issues
             clean_json_str = json_str.strip()
@@ -293,9 +362,9 @@ def direct_analyze_text(text, mode="standard", use_sot=True):
             try:
                 data = json.loads(clean_json_str)
                 issues = data.get("issues", [])
-                print(f"Successfully parsed JSON with {len(issues)} issues")
+                logger.info(f"Successfully parsed JSON with {len(issues)} issues")
             except json.JSONDecodeError as je:
-                print(f"JSON decode error: {je}. Attempting simplified parsing...")
+                logger.error(f"JSON decode error: {je}. Attempting simplified parsing...")
                 
                 # Check if we have a string that contains issue data but isn't valid JSON
                 if '"issues"' in clean_json_str:
@@ -305,7 +374,7 @@ def direct_analyze_text(text, mode="standard", use_sot=True):
                         issues_json = issues_match.group(1)
                         try:
                             issues = json.loads(issues_json)
-                            print(f"Extracted issues array with {len(issues)} issues")
+                            logger.info(f"Extracted issues array with {len(issues)} issues")
                         except json.JSONDecodeError:
                             # Still can't parse - create simple fallback issue
                             issues = [create_fallback_issue(response)]
@@ -316,7 +385,7 @@ def direct_analyze_text(text, mode="standard", use_sot=True):
                     # No issues keyword found - use fallback
                     issues = [create_fallback_issue(response)]
         else:
-            print(f"No JSON structure found in response - using pattern matching")
+            logger.warning(f"No JSON structure found in response - using pattern matching")
             # Save debug info
             with open("/tmp/ai_debug_response.txt", "w") as f:
                 f.write(f"Original response:\n{response}\n\n")
@@ -326,7 +395,7 @@ def direct_analyze_text(text, mode="standard", use_sot=True):
                 # If nothing found, create a general fallback issue
                 issues = [create_fallback_issue(response)]
     except Exception as e:
-        print(f"Error extracting JSON: {e}")
+        logger.error(f"Error extracting JSON: {e}")
         # Save problematic response for debugging
         with open("/tmp/ai_debug_response.txt", "w") as f:
             f.write(f"Error: {str(e)}\n\nOriginal response:\n{response}\n\n")
@@ -353,13 +422,13 @@ def direct_analyze_text(text, mode="standard", use_sot=True):
                 
                 # Generate reasoning
                 reasoning = sot.generate_reasoning(text, issues, paradigm=sot_paradigm)
-                print(f"Generated SoT reasoning with paradigm '{sot_paradigm}'")
+                logger.info(f"Generated SoT reasoning with paradigm '{sot_paradigm}'")
         except Exception as e:
-            print(f"Error using SoT integration: {e}")
+            logger.error(f"Error using SoT integration: {e}")
             # No fallback - if it doesn't work, we don't want artificial reasoning
     
     # Generate Socratic questions only if there are actual issues detected
-    questions = generate_socratic_questions(text, issues, sot_paradigm) if issues else []
+    questions = generate_socratic_questions(text, issues, sot_paradigm, max_questions) if issues else []
     
     # Build the result
     result = {
@@ -372,7 +441,8 @@ def direct_analyze_text(text, mode="standard", use_sot=True):
         "sot_enabled": use_sot,
         "model": model,
         "provider": "ollama",
-        "reflective_ecosystem_used": REFLECTIVE_ECOSYSTEM_AVAILABLE
+        "reflective_ecosystem_used": REFLECTIVE_ECOSYSTEM_AVAILABLE,
+        "max_questions": max_questions
     }
     
     return result
@@ -389,15 +459,29 @@ def process_feedback(question: str, helpful: bool, paradigm: Optional[str] = Non
     Returns:
         Success status
     """
+    # Try using the SocraticClarifier first
+    try:
+        clarifier = initialize_clarifier()
+        if clarifier and hasattr(clarifier, 'process_feedback'):
+            logger.info(f"Processing feedback via SocraticClarifier")
+            success = clarifier.process_feedback(question, helpful, paradigm)
+            return success
+    except Exception as e:
+        logger.error(f"Error processing feedback via SocraticClarifier: {e}")
+        # Fall back to direct processing
+    
+    # Direct integration fallback
     if not REFLECTIVE_ECOSYSTEM_AVAILABLE:
+        logger.warning("Reflective ecosystem not available. Feedback not processed.")
         return False
     
     try:
         enhancer = get_enhancer()
         enhancer.process_feedback(question, helpful, paradigm)
+        logger.info(f"Feedback processed successfully via direct enhancer")
         return True
     except Exception as e:
-        print(f"Error processing feedback: {e}")
+        logger.error(f"Error processing feedback: {e}")
         return False
 
 def get_reflective_ecosystem_status():
@@ -407,6 +491,18 @@ def get_reflective_ecosystem_status():
     Returns:
         Dictionary with status information
     """
+    # Try using the SocraticClarifier first
+    try:
+        clarifier = initialize_clarifier()
+        if clarifier and hasattr(clarifier, 'get_reflective_ecosystem_status'):
+            logger.info(f"Getting reflective ecosystem status via SocraticClarifier")
+            status = clarifier.get_reflective_ecosystem_status()
+            return status
+    except Exception as e:
+        logger.error(f"Error getting reflective ecosystem status via SocraticClarifier: {e}")
+        # Fall back to direct status check
+    
+    # Direct integration fallback
     if not REFLECTIVE_ECOSYSTEM_AVAILABLE:
         return {
             "available": False,
@@ -428,4 +524,240 @@ def get_reflective_ecosystem_status():
         return {
             "available": False,
             "reason": f"Error getting status: {e}"
+        }
+
+def process_image(image_path: str, text: Optional[str] = None, mode: str = "standard", 
+                 use_sot: bool = True, max_questions: int = 5) -> Dict[str, Any]:
+    """
+    Process an image using the SocraticClarifier.
+    
+    Args:
+        image_path (str): Path to the image file
+        text (str, optional): Additional text context for the image
+        mode (str, optional): Analysis mode (standard or reflective)
+        use_sot (bool, optional): Whether to use SOT if available
+        max_questions (int, optional): Maximum number of questions to generate
+        
+    Returns:
+        dict: Analysis results
+    """
+    try:
+        # Initialize the clarifier
+        clarifier = initialize_clarifier()
+        if clarifier and hasattr(clarifier, 'analyze_image'):
+            logger.info(f"Processing image via SocraticClarifier: {image_path}")
+            
+            # Process the image
+            if mode == "reflective" and hasattr(clarifier, 'analyze_image_reflective'):
+                issues, questions, reasoning = clarifier.analyze_image_reflective(
+                    image_path=image_path,
+                    text=text,
+                    use_sot=use_sot,
+                    max_questions=max_questions
+                )
+            else:
+                issues, questions, reasoning = clarifier.analyze_image(
+                    image_path=image_path,
+                    text=text,
+                    use_sot=use_sot,
+                    max_questions=max_questions
+                )
+            
+            # Build result dict
+            sot_paradigm = clarifier.sot_paradigm if hasattr(clarifier, 'sot_paradigm') else None
+            model = clarifier.model if hasattr(clarifier, 'model') else "llama3"
+            provider = clarifier.provider if hasattr(clarifier, 'provider') else "ollama"
+            
+            result = {
+                "image_path": image_path,
+                "text": text or "",
+                "issues": issues,
+                "questions": questions,
+                "reasoning": reasoning,
+                "sot_paradigm": sot_paradigm,
+                "confidence": sum(issue.get("confidence", 0) for issue in issues) / len(issues) if issues else 0.0,
+                "sot_enabled": use_sot,
+                "model": model,
+                "provider": provider,
+                "reflective_ecosystem_used": REFLECTIVE_ECOSYSTEM_AVAILABLE,
+                "max_questions": max_questions
+            }
+            
+            return result
+    except Exception as e:
+        logger.error(f"Error processing image: {e}")
+        
+    # For image processing, we don't have a complete direct fallback
+    # Return an error response
+    return {
+        "error": "Image processing failed. Multimodal capabilities may not be available.",
+        "success": False,
+        "image_path": image_path,
+        "text": text or "",
+        "issues": [],
+        "questions": [],
+        "reasoning": None,
+        "sot_paradigm": None,
+        "confidence": 0.0,
+        "sot_enabled": use_sot,
+        "provider": "none",
+        "reflective_ecosystem_used": False,
+        "max_questions": max_questions
+    }
+
+def process_document(document_path: str, query: Optional[str] = None, mode: str = "standard",
+                    use_sot: bool = True, max_questions: int = 5) -> Dict[str, Any]:
+    """
+    Process a document using the SocraticClarifier.
+    
+    Args:
+        document_path (str): Path to the document file
+        query (str, optional): Query to apply to the document content
+        mode (str, optional): Analysis mode (standard or reflective)
+        use_sot (bool, optional): Whether to use SOT if available
+        max_questions (int, optional): Maximum number of questions to generate
+        
+    Returns:
+        dict: Analysis results
+    """
+    try:
+        # Initialize the clarifier
+        clarifier = initialize_clarifier()
+        
+        if clarifier and hasattr(clarifier, 'analyze_document'):
+            logger.info(f"Processing document via SocraticClarifier: {document_path}")
+            
+            # Process the document
+            if mode == "reflective" and hasattr(clarifier, 'analyze_document_reflective'):
+                issues, questions, reasoning, content = clarifier.analyze_document_reflective(
+                    document_path=document_path,
+                    query=query,
+                    use_sot=use_sot,
+                    max_questions=max_questions
+                )
+            else:
+                issues, questions, reasoning, content = clarifier.analyze_document(
+                    document_path=document_path,
+                    query=query,
+                    use_sot=use_sot,
+                    max_questions=max_questions
+                )
+            
+            # Build result dict
+            sot_paradigm = clarifier.sot_paradigm if hasattr(clarifier, 'sot_paradigm') else None
+            model = clarifier.model if hasattr(clarifier, 'model') else "llama3"
+            provider = clarifier.provider if hasattr(clarifier, 'provider') else "ollama"
+            
+            result = {
+                "document_path": document_path,
+                "query": query or "",
+                "content": content,
+                "issues": issues,
+                "questions": questions,
+                "reasoning": reasoning,
+                "sot_paradigm": sot_paradigm,
+                "confidence": sum(issue.get("confidence", 0) for issue in issues) / len(issues) if issues else 0.0,
+                "sot_enabled": use_sot,
+                "model": model,
+                "provider": provider,
+                "reflective_ecosystem_used": REFLECTIVE_ECOSYSTEM_AVAILABLE,
+                "max_questions": max_questions
+            }
+            
+            return result
+    except Exception as e:
+        logger.error(f"Error processing document: {e}")
+    
+    # For document processing, we don't have a complete direct fallback
+    # Return an error response
+    return {
+        "error": "Document processing failed. Document RAG capabilities may not be available.",
+        "success": False,
+        "document_path": document_path,
+        "query": query or "",
+        "content": "",
+        "issues": [],
+        "questions": [],
+        "reasoning": None,
+        "sot_paradigm": None,
+        "confidence": 0.0,
+        "sot_enabled": use_sot,
+        "provider": "none",
+        "reflective_ecosystem_used": False,
+        "max_questions": max_questions
+    }
+
+def get_supported_modes() -> List[str]:
+    """
+    Get a list of supported analysis modes.
+    
+    Returns:
+        list: List of supported mode names
+    """
+    try:
+        # Initialize the clarifier
+        clarifier = initialize_clarifier()
+        
+        if clarifier and hasattr(clarifier, 'get_supported_modes'):
+            modes = clarifier.get_supported_modes()
+            return modes
+        else:
+            # Default modes if method not available
+            return ["standard", "reflective"]
+    except Exception as e:
+        logger.error(f"Error getting supported modes: {e}")
+        # Return default modes if the clarifier fails
+        return ["standard", "reflective"]
+
+def get_system_status() -> Dict[str, Any]:
+    """
+    Get the status of the Socratic Clarifier system.
+    
+    Returns:
+        dict: System status information
+    """
+    try:
+        # Initialize the clarifier
+        clarifier = initialize_clarifier()
+        
+        if clarifier and hasattr(clarifier, 'get_system_status'):
+            status = clarifier.get_system_status()
+            return status
+        else:
+            # Create a basic status if method not available
+            return {
+                "version": "1.0.0",
+                "success": True,
+                "providers": {
+                    "ollama": {"available": True},
+                    "sot": {"available": REFLECTIVE_ECOSYSTEM_AVAILABLE},
+                    "multimodal": {"available": False},
+                    "document_rag": {"available": False}
+                },
+                "features": {
+                    "text_analysis": True,
+                    "image_analysis": False,
+                    "document_analysis": False,
+                    "reflective_ecosystem": REFLECTIVE_ECOSYSTEM_AVAILABLE
+                }
+            }
+    except Exception as e:
+        logger.error(f"Error getting system status: {e}")
+        # Create a basic status response if the clarifier fails
+        return {
+            "error": str(e),
+            "success": False,
+            "version": "unknown",
+            "providers": {
+                "ollama": {"available": False},
+                "sot": {"available": False},
+                "multimodal": {"available": False},
+                "document_rag": {"available": False}
+            },
+            "features": {
+                "text_analysis": True,
+                "image_analysis": False,
+                "document_analysis": False,
+                "reflective_ecosystem": False
+            }
         }

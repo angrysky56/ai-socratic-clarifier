@@ -1,0 +1,119 @@
+<!-- SRE Visualization Component -->
+<div class="sre-visualization-panel">
+    <div class="sre-header">
+        <h5><i class="bi bi-braces"></i> Reflective Ecosystem Visualization</h5>
+        <div class="sre-controls">
+            <select id="paradigmSelector" class="form-select form-select-sm">
+                <option value="conceptual_chaining">Conceptual Chaining</option>
+                <option value="chunked_symbolism">Chunked Symbolism</option>
+                <option value="expert_lexicons">Expert Lexicons</option>
+                <option value="socratic_questioning">Socratic Questioning</option>
+            </select>
+            <button id="collapseBtn" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-chevron-up"></i>
+            </button>
+        </div>
+    </div>
+    
+    <div class="sre-content">
+        <!-- Meta-Meta Framework Visualization -->
+        <div class="meta-meta-section">
+            <h6>Meta-Meta Framework Process</h6>
+            <div class="meta-meta-stages">
+                <div id="stageWhy" class="stage active" title="Establish the Principle of Inquiry (Why?)">
+                    Why?
+                </div>
+                <div id="stageWhat" class="stage" title="Identify the Dimensional Axes (What?)">
+                    What?
+                </div>
+                <div id="stageHow" class="stage" title="Design Recursive Frameworks (How?)">
+                    How?
+                </div>
+                <div id="stageWhatIf" class="stage" title="Leverage Constraints as Catalysts (What if?)">
+                    What if?
+                </div>
+                <div id="stageHowElse" class="stage" title="Introduce Controlled Emergence (How Else?)">
+                    How else?
+                </div>
+                <div id="stageWhatNext" class="stage" title="Facilitate Feedback Loops (What Next?)">
+                    What next?
+                </div>
+                <div id="stageWhatNow" class="stage" title="Maximize Adaptive Flexibility (What Now?)">
+                    What now?
+                </div>
+            </div>
+        </div>
+        
+        <!-- IntelliSynth Metrics Visualization -->
+        <div class="intellisynth-metrics">
+            <h6>IntelliSynth Metrics</h6>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-label">Truth Value</div>
+                    <div id="truthValue" class="metric-value">0.70</div>
+                    <div class="metric-bar">
+                        <div class="metric-fill" style="width: 70%"></div>
+                    </div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-label">Scrutiny Value</div>
+                    <div id="scrutinyValue" class="metric-value">0.40</div>
+                    <div class="metric-bar">
+                        <div class="metric-fill" style="width: 40%"></div>
+                    </div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-label">Improvement Value</div>
+                    <div id="improvementValue" class="metric-value">0.60</div>
+                    <div class="metric-bar">
+                        <div class="metric-fill" style="width: 60%"></div>
+                    </div>
+                </div>
+                
+                <div class="metric-card advancement">
+                    <div class="metric-label">Advancement</div>
+                    <div id="advancementValue" class="metric-value">0.68</div>
+                    <div class="metric-bar">
+                        <div class="metric-fill" style="width: 68%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Node Visualization -->
+        <div class="node-visualization">
+            <div class="node-header">
+                <h6>Reasoning Node Network</h6>
+                <div class="node-info">
+                    <span class="badge bg-primary">Global Resonance: <span id="globalCoherence">0.82</span></span>
+                </div>
+            </div>
+            
+            <div class="node-canvas-container">
+                <canvas id="nodeCanvas" width="600" height="300"></canvas>
+            </div>
+            
+            <div class="node-metrics">
+                <div class="node-metric">
+                    <span class="node-metric-label">Active Nodes:</span>
+                    <span id="nodeCount" class="node-metric-value">4</span>
+                </div>
+                <div class="node-metric">
+                    <span class="node-metric-label">Current Paradigm:</span>
+                    <span class="node-metric-value">Conceptual Chaining</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Reasoning Paths Visualization -->
+        <div class="reasoning-paths-section">
+            <h6>Reasoning Paths</h6>
+            <div id="reasoningPaths" class="paths-container">
+                <!-- Reasoning paths will be added dynamically -->
+                <div class="text-muted">No reasoning paths available yet</div>
+            </div>
+        </div>
+    </div>
+</div>

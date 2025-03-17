@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Document Library - AI Socratic Clarifier{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-lg-3 col-md-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-folder"></i> Document Management</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-primary" id="uploadDocBtn">
+                            <i class="bi bi-upload"></i> Upload Document
+                        </button>
+                        <button class="btn btn-outline-secondary" id="refreshDocsBtn">
+                            <i class="bi bi-arrow-clockwise"></i> Refresh
+                        </button>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="filters">
+                        <h6>Filter Documents</h6>
+                        <div class="mb-3">
+                            <label for="documentSearch" class="form-label">Search</label>
+                            <input type="text" class="form-control" id="documentSearch" placeholder="Search documents...">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Document Type</label>
+                            <div class="form-check">
+                                <input class="form-check-input filter-type" type="checkbox" value="all" id="typeAll" checked>
+                                <label class="form-check-label" for="typeAll">All Types</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input filter-type" type="checkbox" value="pdf" id="typePdf">
+                                <label class="form-check-label" for="typePdf">PDF</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input filter-type" type="checkbox" value="text" id="typeText">
+                                <label class="form-check-label" for="typeText">Text</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input filter-type" type="checkbox" value="image" id="typeImage">
+                                <label class="form-check-label" for="typeImage">Image</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input filter-type" type="checkbox" value="other" id="typeOther">
+                                <label class="form-check-label" for="typeOther">Other</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="col-lg-9 col-md-8">
+            <div class="document-container">
+                <div class="document-header">
+                    <h3>Documents</h3>
+                    <div class="view-controls">
+                        <button class="btn btn-sm btn-outline-secondary view-btn active" data-view="grid">
+                            <i class="bi bi-grid-3x3-gap"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary view-btn" data-view="list">
+                            <i class="bi bi-list"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="document-grid" id="documentList">
+                    <!-- Documents will be loaded here -->
+                    <div class="placeholder-text text-muted p-3">
+                        <div class="d-flex justify-content-center mb-3">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                        <p class="text-center mb-0">Loading documents...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Document Upload Modal -->
+{% include 'components/document_upload_modal.html' %}
+
+<!-- Document Preview Modal -->
+{% include 'components/document_preview_modal.html' %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/enhanced/document_manager.js') }}"></script>
+<script src="{{ url_for('static', filename='js/enhanced/document_library.js') }}"></script>
+{% endblock %}

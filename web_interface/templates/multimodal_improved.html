@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Socratic-Clarifier - Improved Multimodal Analysis</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+        }
+        .card {
+            background-color: #2d2d2d;
+            border: 1px solid #3d3d3d;
+        }
+        .card-header {
+            background-color: #363636;
+            border-bottom: 1px solid #3d3d3d;
+        }
+        .max-questions-control {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .max-questions-control input[type="number"] {
+            width: 60px;
+            text-align: center;
+            margin: 0 10px;
+            background-color: #333;
+            color: #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h3>Improved Multimodal Analysis</h3>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header">Upload Document</div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <input class="form-control" type="file" id="fileInput">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="analysisMode" id="socraticMode" value="socratic">
+                                <label class="form-check-label" for="socraticMode">Socratic Analysis</label>
+                            </div>
+                        </div>
+                        
+                        <!-- Improved max questions control -->
+                        <div class="mb-3">
+                            <label for="maxQuestionsInput" class="form-label">Maximum Questions:</label>
+                            <div class="max-questions-control">
+                                <button type="button" id="decreaseQuestions" class="btn btn-secondary">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                                <input type="number" id="maxQuestionsInput" min="1" max="10" value="5" class="form-control">
+                                <button type="button" id="increaseQuestions" class="btn btn-secondary">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <button class="btn btn-primary" id="processButton">Process Document</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">Results</div>
+                    <div class="card-body">
+                        <p>Select a file and processing mode to get started.</p>
+                        <button class="btn btn-info" id="analyzeTextButton">
+                            <i class="fas fa-brain me-1"></i>Analyze in Reflective Ecosystem
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('analyzeTextButton').addEventListener('click', function() {
+            window.open('/reflection', '_blank');
+        });
+        
+        // Plus/minus controls for max questions
+        document.getElementById('decreaseQuestions').addEventListener('click', function() {
+            const input = document.getElementById('maxQuestionsInput');
+            const value = Math.max(1, parseInt(input.value) - 1);
+            input.value = value;
+        });
+        
+        document.getElementById('increaseQuestions').addEventListener('click', function() {
+            const input = document.getElementById('maxQuestionsInput');
+            const value = Math.min(10, parseInt(input.value) + 1);
+            input.value = value;
+        });
+    </script>
+</body>
+</html>

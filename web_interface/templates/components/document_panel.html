@@ -1,0 +1,139 @@
+<!-- Document Panel Component -->
+<div class="document-panel">
+    <div class="document-panel-header">
+        <h5><i class="bi bi-files"></i> Document Library</h5>
+        <div class="document-actions">
+            <button class="btn btn-sm btn-primary" id="uploadDocBtn" title="Upload document">
+                <i class="bi bi-upload"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-secondary" id="refreshDocsBtn" title="Refresh documents">
+                <i class="bi bi-arrow-clockwise"></i>
+            </button>
+        </div>
+    </div>
+    
+    <div class="search-bar p-2">
+        <div class="input-group input-group-sm">
+            <input type="text" class="form-control" id="documentSearch" placeholder="Search documents...">
+            <button class="btn btn-outline-secondary" type="button" id="searchDocsBtn">
+                <i class="bi bi-search"></i>
+            </button>
+        </div>
+    </div>
+    
+    <div class="document-list" id="documentList">
+        <!-- Documents will be dynamically populated here -->
+        <div class="placeholder-text text-muted p-3">
+            <div class="d-flex justify-content-center mb-3">
+                <div class="spinner-border spinner-border-sm text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+            <p class="text-center mb-0">Loading documents...</p>
+        </div>
+    </div>
+    
+    <div class="rag-section">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">RAG Context <span class="badge bg-primary" id="ragCount">0</span></h6>
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="enableRagSwitch" checked>
+                <label class="form-check-label" for="enableRagSwitch">Enable</label>
+            </div>
+        </div>
+        <div id="ragContext" class="rag-context">
+            <!-- Selected documents for RAG will appear here -->
+            <div class="placeholder-text text-muted text-center p-2">
+                <small>No documents selected for context</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Document Upload Modal -->
+<div class="modal fade" id="uploadDocumentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Upload Document</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="uploadDocumentForm">
+                    <div class="mb-3">
+                        <label for="documentFile" class="form-label">Select Document</label>
+                        <input type="file" class="form-control" id="documentFile" accept=".pdf,.png,.jpg,.jpeg,.txt,.md,.doc,.docx,.xls,.xlsx,.csv">
+                        <div class="form-text">Supported formats: PDF, Images, Text, Documents, Spreadsheets</div>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="generateEmbeddingsCheck" checked>
+                        <label class="form-check-label" for="generateEmbeddingsCheck">
+                            Generate embeddings for retrieval
+                        </label>
+                    </div>
+                    <div class="mb-3">
+                        <label for="documentTags" class="form-label">Tags (optional)</label>
+                        <input type="text" class="form-control" id="documentTags" placeholder="Enter tags separated by commas">
+                        <div class="form-text">Tags help with organization and retrieval</div>
+                    </div>
+                </form>
+                <div class="upload-progress d-none">
+                    <div class="progress">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <p class="mt-2 text-center" id="uploadStatus">Uploading...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="uploadDocumentSubmit">Upload</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Document Preview Modal -->
+<div class="modal fade" id="documentPreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="previewDocumentTitle">Document Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="document-info mb-3">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Type:</strong> <span id="previewDocumentType">Unknown</span></p>
+                            <p><strong>Size:</strong> <span id="previewDocumentSize">0 bytes</span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Added:</strong> <span id="previewDocumentDate">Unknown</span></p>
+                            <p><strong>Tags:</strong> <span id="previewDocumentTags">None</span></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="document-content-preview">
+                    <div class="content-placeholder text-center p-4 d-none">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading document content...</p>
+                    </div>
+                    <pre id="documentContentPreview" class="p-3 border rounded bg-light"></pre>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div class="me-auto">
+                    <button type="button" class="btn btn-outline-primary" id="addToRagBtn">
+                        <i class="bi bi-plus-circle"></i> Add to RAG Context
+                    </button>
+                </div>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="analyzeDocumentBtn">
+                    <i class="bi bi-search"></i> Analyze Content
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

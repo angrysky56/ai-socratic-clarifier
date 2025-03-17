@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AI-Socratic-Clarifier{% endblock %}</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    
+    <!-- Page-specific CSS -->
+    {% block additional_css %}{% endblock %}
+    
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2ecc71;
+            --accent-color: #9b59b6;
+            --background-color: #f8f9fa;
+            --text-color: #333;
+            --text-light: #6c757d;
+            --card-bg: #ffffff;
+            --border-color: #dee2e6;
+            --highlight-color: #fffacd;
+        }
+        
+        body {
+            background-color: var(--background-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .navbar-custom {
+            background-color: var(--card-bg);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .navbar-brand img {
+            height: 30px;
+            margin-right: 8px;
+        }
+        
+        .main-content {
+            flex: 1;
+            padding: 20px 0;
+        }
+        
+        .footer {
+            background-color: var(--card-bg);
+            padding: 15px 0;
+            border-top: 1px solid var(--border-color);
+            margin-top: auto;
+        }
+        
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            border: none;
+            margin-bottom: 20px;
+            background-color: var(--card-bg);
+        }
+        
+        .card-header {
+            background-color: rgba(0, 0, 0, 0.02);
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 600;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-secondary {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+        }
+        
+        .btn-accent {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+            color: white;
+        }
+        
+        .feature-icon {
+            font-size: 2rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+        
+        .message-highlight {
+            background-color: var(--highlight-color);
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --primary-color: #3498db;
+                --secondary-color: #2ecc71;
+                --accent-color: #9b59b6;
+                --background-color: #2d3436;
+                --text-color: #ecf0f1;
+                --text-light: #bdc3c7;
+                --card-bg: #34495e;
+                --border-color: #4b6584;
+                --highlight-color: #6c5ce7;
+            }
+            
+            .card-header {
+                background-color: rgba(0, 0, 0, 0.1);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Main Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-custom navbar-light sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-lightbulb-fill text-warning"></i>
+                AI-Socratic-Clarifier
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="/">
+                            <i class="bi bi-house-door"></i> Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/chat' %}active{% endif %}" href="/chat">
+                            <i class="bi bi-chat-dots"></i> Chat
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/reflection' %}active{% endif %}" href="/reflection">
+                            <i class="bi bi-diagram-3"></i> Reflection
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/multimodal' %}active{% endif %}" href="/multimodal">
+                            <i class="bi bi-file-earmark-image"></i> Documents
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/settings' %}active{% endif %}" href="/settings">
+                            <i class="bi bi-gear"></i> Settings
+                        </a>
+                    </li>
+                </ul>
+                <!-- Status Indicators -->
+                <div class="d-flex align-items-center">
+                    <span class="badge bg-success me-2" id="modelStatus">
+                        <i class="bi bi-cpu"></i> Model Ready
+                    </span>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="modeDropdown" data-bs-toggle="dropdown">
+                            <i class="bi bi-sliders"></i> Mode
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="modeDropdown">
+                            <li><button class="dropdown-item mode-select" data-mode="standard">Standard</button></li>
+                            <li><button class="dropdown-item mode-select" data-mode="deep">Deep Inquiry</button></li>
+                            <li><button class="dropdown-item mode-select" data-mode="reflective">Reflective Ecosystem</button></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><button class="dropdown-item" id="debugModeToggle">Debug Mode</button></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="container">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="mb-0">&copy; 2025 AI-Socratic-Clarifier | <a href="https://github.com/angrysky56/ai-socratic-clarifier" target="_blank">GitHub</a></p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <div class="small text-muted">
+                        <span id="currentModel">Model: llama3</span> | 
+                        <span id="currentMode">Mode: standard</span> |
+                        <span id="systemStatus">Ready</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Common JavaScript -->
+    <script src="{{ url_for('static', filename='js/common.js') }}"></script>
+    
+    <!-- Page-specific JavaScript -->
+    {% block additional_js %}{% endblock %}
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Mode selection
+            const modeButtons = document.querySelectorAll('.mode-select');
+            modeButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const mode = this.dataset.mode;
+                    document.getElementById('currentMode').textContent = `Mode: ${mode}`;
+                    localStorage.setItem('preferredMode', mode);
+                    // Update any active mode-dependent components on the page
+                    if (typeof updateMode === 'function') {
+                        updateMode(mode);
+                    }
+                });
+            });
+            
+            // Debug mode toggle
+            const debugModeToggle = document.getElementById('debugModeToggle');
+            if (debugModeToggle) {
+                debugModeToggle.addEventListener('click', function() {
+                    const debugMode = localStorage.getItem('debugMode') === 'true';
+                    localStorage.setItem('debugMode', (!debugMode).toString());
+                    this.innerHTML = !debugMode ? 
+                        '<i class="bi bi-bug"></i> Debug Mode: ON' : 
+                        '<i class="bi bi-bug"></i> Debug Mode: OFF';
+                    // Update UI based on debug mode
+                    document.body.classList.toggle('debug-mode', !debugMode);
+                });
+                
+                // Initialize debug mode
+                const initialDebugMode = localStorage.getItem('debugMode') === 'true';
+                debugModeToggle.innerHTML = initialDebugMode ? 
+                    '<i class="bi bi-bug"></i> Debug Mode: ON' : 
+                    '<i class="bi bi-bug"></i> Debug Mode: OFF';
+                document.body.classList.toggle('debug-mode', initialDebugMode);
+            }
+            
+            // Set initial mode from localStorage or default to 'standard'
+            const savedMode = localStorage.getItem('preferredMode') || 'standard';
+            document.getElementById('currentMode').textContent = `Mode: ${savedMode}`;
+            
+            // Initialize the model status indicator
+            checkModelStatus();
+            
+            // Check model status periodically
+            setInterval(checkModelStatus, 30000);
+        });
+        
+        // Function to check model status
+        function checkModelStatus() {
+            fetch('/api/test')
+                .then(response => response.json())
+                .then(data => {
+                    const modelStatus = document.getElementById('modelStatus');
+                    const systemStatus = document.getElementById('systemStatus');
+                    
+                    if (data.status === 'ok') {
+                        modelStatus.className = 'badge bg-success me-2';
+                        modelStatus.innerHTML = '<i class="bi bi-cpu"></i> Model Ready';
+                        systemStatus.textContent = 'Ready';
+                        
+                        document.getElementById('currentModel').textContent = `Model: ${data.provider || 'ollama'}`;
+                    } else {
+                        modelStatus.className = 'badge bg-danger me-2';
+                        modelStatus.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Model Error';
+                        systemStatus.textContent = 'Error';
+                    }
+                })
+                .catch(error => {
+                    const modelStatus = document.getElementById('modelStatus');
+                    const systemStatus = document.getElementById('systemStatus');
+                    
+                    modelStatus.className = 'badge bg-warning me-2';
+                    modelStatus.innerHTML = '<i class="bi bi-question-circle"></i> Model Status Unknown';
+                    systemStatus.textContent = 'Unknown';
+                    
+                    console.error('Error checking model status:', error);
+                });
+        }
+    </script>
+</body>
+</html>

@@ -1,37 +1,24 @@
 # AI-Socratic-Clarifier
 
-A tool for analyzing statements through a Socratic lens, detecting logical issues, and generating thoughtful questions to promote clearer thinking.
+An advanced system for enhancing critical thinking through AI-assisted questioning and reflection. The AI-Socratic-Clarifier analyzes text and generates Socratic questions that prompt deeper reflection and exploration of ideas.
 
-## Overview
+## Key Features
 
-The AI-Socratic-Clarifier analyzes text using AI models to identify potential issues like:
-- Absolute statements
-- Vague or imprecise language
-- Unsupported claims
-- Subjective judgments
-- Implied causation without evidence
-
-For detected issues, it generates thoughtful Socratic questions to help clarify thinking and improve reasoning.
-
-## Features
-
-- **Multiple Analysis Modes**: Standard analysis, deep inquiry, and reflective ecosystem
-- **Interactive Web Interface**: Easy-to-use chat and analysis UI
-- **Resonance-Based Reflection**: Advanced analysis with conceptual chaining paradigms
-- **Feedback System**: Improve the system by providing feedback on questions
-- **Direct Ollama Integration**: Works with local AI models through Ollama
-
-![alt text](image-1.png)
+- **Enhanced UI**: A consolidated single-window interface with document management and reflective visualization
+- **Socratic Question Generation**: Analyze text and generate insightful questions to promote critical thinking
+- **Symbiotic Reflective Ecosystem (SRE)**: Advanced reflective reasoning system for deeper analysis
+- **Sequential of Thought (SoT)**: Structured reasoning approach for complex problem-solving
+- **Document Management**: Upload, view, and use documents as context for AI analysis
+- **Multimodal Support**: Process images and PDFs using OCR and multimodal AI models
+- **RAG Context**: Use uploaded documents as retrieval-augmented generation context for more informed AI responses
 
 ## Getting Started
-
- Sorry the repo is a mess, haven't tried to install from scratch and will be trying to clean it all up soon.
 
 ### Prerequisites
 
 - Python 3.8 or higher
-- [Ollama](https://ollama.ai/) installed and running
-- An LLM model like gemma3, llama3, etc. available through Ollama or LM Studio (see [config](https://github.com/angrysky56/ai-socratic-clarifier/blob/main/config.example.json))
+- Ollama (for local LLM integration)
+- Tesseract OCR (for document processing, optional)
 
 ### Installation
 
@@ -41,70 +28,97 @@ For detected issues, it generates thoughtful Socratic questions to help clarify 
    cd ai-socratic-clarifier
    ```
 
-2. Create and activate a virtual environment:
+2. Install dependencies:
    ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   python install_dependencies.py
    ```
 
-3. Install dependencies:
+3. Configure Ollama models:
+   
+   Ensure Ollama is running and the required models are available:
    ```bash
-   pip install -r requirements.txt
+   ollama pull gemma3:latest    # Default model for text analysis
+   ollama pull llava:latest     # Multimodal model for image processing (optional)
    ```
 
-### Usage
+4. Start the application:
+   ```bash
+   python start_ui.py
+   ```
 
-Start the application with the simplified start script:
+5. Open your browser and navigate to:
+   ```
+   http://localhost:5000
+   ```
 
-```bash
-./start_socratic.py
-```
+## Usage
 
-Then access the web interface at:
-- **Main Interface**: http://localhost:5000/
-- **Chat Interface**: http://localhost:5000/chat
-- **Reflection Interface**: http://localhost:5000/reflection
+The AI-Socratic-Clarifier offers several interaction modes:
 
-## Web Interface
+1. **Enhanced Chat**: The main interface with document management and RAG context
+   - Access at: `/enhanced`
+   - Upload and manage documents
+   - Use documents as context for AI analysis
+   - Visualize the AI's reasoning process
 
-### Analysis Page
-Enter text for analysis and view detected issues with corresponding Socratic questions.
+2. **Reflective Mode**: Focused on the reflective ecosystem visualization
+   - Access at: `/reflection`
+   - See the meta-meta framework in action
+   - Explore different reasoning paths
 
-### Chat Interface
-Have a conversation where the system analyzes your statements and responds with Socratic questions to promote deeper thinking.
-
-### Reflection Interface
-Use the advanced reflective ecosystem for deeper analysis with conceptual chaining and expert lexicons.
+3. **Multimodal Analysis**: Process images and PDFs
+   - Access at: `/multimodal`
+   - Upload images or PDFs for processing
+   - Extract text with OCR
+   - Analyze visual content with multimodal models
 
 ## Configuration
 
-Configuration settings are stored in `config.json` and can be modified to:
-- Change the local model
-- Adjust analysis parameters
-- Configure embedding models
-- Enable/disable specific features
+Configuration options are available in `config.json`:
 
-## Customization (currently removed feature as unneeded may re-integrate a version of this)
-
-You can customize issue detection by adding patterns to the `custom_patterns` directory:
-- `vague.json`: Patterns for vague terminology
-- `gender_bias.json`: Patterns for gender bias
-- `stereotype.json`: Patterns for stereotypical language
-- `non_inclusive.json`: Patterns for non-inclusive language
+```json
+{
+    "integrations": {
+        "ollama": {
+            "enabled": true,
+            "base_url": "http://localhost:11434/api",
+            "default_model": "gemma3:latest",
+            "multimodal_model": "llava:latest"
+        }
+    },
+    "settings": {
+        "prefer_provider": "auto",
+        "use_llm_questions": true,
+        "use_llm_reasoning": true,
+        "use_sot": true,
+        "use_multimodal": true
+    }
+}
+```
 
 ## Troubleshooting
 
 If you encounter issues:
 
-1. Ensure Ollama is running with `ollama serve` (or try LM Studio, but untested and may be missing in the startup script, will check later)
-2. Verify the model in your config.json is available in Ollama
-3. Check if your environment has all required dependencies installed
-4. Review the console output for specific error messages
+1. Run the UI fix script:
+   ```bash
+   python fix_all_ui.py
+   ```
 
-## Contributing
+2. Check the logs for error messages
 
-Contributions are welcome! Feel free to submit issues or pull requests.
+3. Ensure Ollama is running and the required models are installed
+
+4. Verify that Tesseract OCR is installed for document processing
+
+5. See the `UI_FIXES_README.md` for specific fixes and solutions
 
 ## License
 
-[MIT]
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- Inspired by the Socratic method of questioning
+- Built with Flask, React, and Ollama
+- Utilizes state-of-the-art language models for reasoning and analysis

@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Socratic-Clarifier - Multimodal Analysis</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        .navbar {
+            background-color: #252525;
+            border-bottom: 1px solid #3d3d3d;
+        }
+        .sidebar {
+            background-color: #252525;
+            border-right: 1px solid #3d3d3d;
+            height: calc(100vh - 56px);
+            width: 250px;
+            position: fixed;
+            top: 56px;
+            left: 0;
+            overflow-y: auto;
+        }
+        .content {
+            margin-left: 250px;
+            padding: 20px;
+        }
+        .card {
+            background-color: #2d2d2d;
+            border: 1px solid #3d3d3d;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            margin-bottom: 20px;
+        }
+        .card-header {
+            background-color: #363636;
+            border-bottom: 1px solid #3d3d3d;
+            color: #ffffff;
+        }
+        .btn-primary {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+            border-color: #6c757d;
+        }
+        .form-control, .form-select {
+            background-color: #333;
+            border: 1px solid #444;
+            color: #e0e0e0;
+        }
+        .form-control:focus, .form-select:focus {
+            background-color: #3a3a3a;
+            color: #e0e0e0;
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+        .upload-area {
+            border: 2px dashed #444;
+            border-radius: 5px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            background-color: #2a2a2a;
+            transition: all 0.3s;
+        }
+        .upload-area:hover {
+            border-color: #0d6efd;
+            background-color: #2f2f2f;
+        }
+        .preview-container {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #444;
+            border-radius: 5px;
+            padding: 10px;
+            margin-top: 20px;
+        }
+        .preview-image {
+            max-width: 100%;
+            max-height: 200px;
+            margin: 10px auto;
+            display: block;
+        }
+        .results-container {
+            border: 1px solid #444;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 20px;
+            background-color: #2a2a2a;
+        }
+        .badge-processing {
+            background-color: #17a2b8;
+            color: white;
+        }
+        .badge-success {
+            background-color: #28a745;
+            color: white;
+        }
+        .badge-error {
+            background-color: #dc3545;
+            color: white;
+        }
+        .mode-toggle {
+            margin-top: 15px;
+        }
+        .nav-link {
+            color: #b0b0b0;
+        }
+        .nav-link:hover {
+            color: #ffffff;
+        }
+        .nav-link.active {
+            color: #ffffff;
+            background-color: #363636 !important;
+        }
+        .tab-content {
+            margin-top: 20px;
+        }
+        #textOutput {
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        #analysisOutput {
+            white-space: pre-wrap;
+        }
+        .issues-container {
+            margin-top: 20px;
+        }
+        .issue-card {
+            margin-bottom: 10px;
+            background-color: #333;
+            border-left: 4px solid;
+        }
+        .vague-term {
+            border-color: #17a2b8;
+        }
+        .absolute-statement {
+            border-color: #dc3545;
+        }
+        .normative-claim {
+            border-color: #ffc107;
+        }
+        .unsupported-claim {
+            border-color: #6f42c1;
+        }
+        #fileInput {
+            display: none;
+        }
+        .loading-spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 0.15em solid currentColor;
+            border-right-color: transparent;
+            border-radius: 50%;
+            animation: spinner-border .75s linear infinite;
+        }
+        @keyframes spinner-border {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">AI-Socratic-Clarifier</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/chat">Chat</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/reflection">Reflection</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/multimodal">Multimodal</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/settings">Settings</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="sidebar d-none d-lg-block">
+        <div class="p-3">
+            <h5>Multimodal Analysis</h5>
+            <p class="small">Upload images or PDFs for analysis with OCR and multimodal AI models.</p>
+            <hr>
+            <h6>Supported File Types</h6>
+            <ul class="small">
+                <li>Images (JPG, PNG, BMP, TIFF)</li>
+                <li>PDF Documents</li>
+            </ul>
+            <hr>
+            <h6>Analysis Modes</h6>
+            <ul class="small">
+                <li><strong>OCR:</strong> Extract text only</li>
+                <li><strong>Multimodal:</strong> AI model analyzes both visual and textual content</li>
+                <li><strong>Socratic Analysis:</strong> Generate questions based on extracted content</li>
+            </ul>
+            <hr>
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="debugMode">
+                <label class="form-check-label small" for="debugMode">Debug Mode</label>
+            </div>
+        </div>
+    </div>
+
+    <div class="content">
+        <div class="container-fluid">
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h3>Multimodal Analysis</h3>
+                    <p>Upload images or PDFs to extract text and analyze content using OCR and multimodal AI.</p>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Upload Document</h5>
+                        </div>
+                        <div class="card-body">
+                            <label for="fileInput" class="upload-area" id="uploadArea">
+                                <i class="fas fa-cloud-upload-alt fa-3x mb-3"></i>
+                                <h5>Drag & Drop Files Here</h5>
+                                <p>Or click to browse files</p>
+                                <small class="text-muted">Supported formats: JPG, PNG, PDF, BMP, TIFF</small>
+                            </label>
+                            <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.pdf,.bmp,.tiff,.tif">
+
+                            <div class="mode-toggle">
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="analysisMode" id="ocrMode" value="ocr" checked>
+                                    <label class="form-check-label" for="ocrMode">OCR Only</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="analysisMode" id="multimodalMode" value="multimodal">
+                                    <label class="form-check-label" for="multimodalMode">Multimodal Analysis</label>
+                                <
+                            <div class="mt-3" id="socraticOptions" style="display:none;">
+                                <label for="maxQuestionsSlider" class="form-label">Maximum Questions: <span id="maxQuestionsValue">5</span></label>
+                                <input type="range" class="form-range" min="1" max="10" step="1" value="5" id="maxQuestionsSlider">
+                                
+                                <div class="form-check mt-2">
+                                    <input class="form-check-input" type="checkbox" id="useSreCheckbox" checked>
+                                    <label class="form-check-label" for="useSreCheckbox">
+                                        Use Socratic Reasoning Engine for improved questions
+                                    </label>
+                                </div>
+                            </div>
+/div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="analysisMode" id="socraticMode" value="socratic">
+                                    <label class="form-check-label" for="socraticMode">Socratic Analysis</label>
+                                </div>
+                            </div>
+
+                            <div class="preview-container mt-3" id="previewContainer" style="display: none;">
+                                <h6>File Preview</h6>
+                                <div id="preview"></div>
+                            </div>
+
+                            <div class="d-grid gap-2 mt-3">
+                                <button class="btn btn-primary" id="processButton" disabled>
+                                    <i class="fas fa-cogs me-2"></i>Process Document
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Results</h5>
+                        </div>
+                        <div class="card-body">
+                            <ul class="nav nav-tabs" id="resultsTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="text-tab" data-bs-toggle="tab" data-bs-target="#textTab" type="button" role="tab">Extracted Text</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="analysis-tab" data-bs-toggle="tab" data-bs-target="#analysisTab" type="button" role="tab">Analysis</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="issues-tab" data-bs-toggle="tab" data-bs-target="#issuesTab" type="button" role="tab">Issues</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="questions-tab" data-bs-toggle="tab" data-bs-target="#questionsTab" type="button" role="tab">Questions</button>
+                                </li>
+                            </ul>
+                            
+                            <div class="tab-content" id="resultsTabContent">
+                                <div class="tab-pane fade show active" id="textTab" role="tabpanel">
+                                    <div class="results-container">
+                                        <div id="textStatus">
+                                            <span class="badge bg-secondary">No file processed</span>
+                                        </div>
+                                        <div id="textOutput" class="mt-3">Select a file to process</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="tab-pane fade" id="analysisTab" role="tabpanel">
+                                    <div class="results-container">
+                                        <div id="analysisStatus">
+                                            <span class="badge bg-secondary">No analysis available</span>
+                                        </div>
+                                        <div id="analysisOutput" class="mt-3">Select multimodal or socratic analysis mode</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="tab-pane fade" id="issuesTab" role="tabpanel">
+                                    <div class="results-container">
+                                        <div id="issuesStatus">
+                                            <span class="badge bg-secondary">No issues detected</span>
+                                        </div>
+                                        <div id="issuesOutput" class="issues-container">
+                                            <p>Socratic analysis will detect potential issues in the text</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="tab-pane fade" id="questionsTab" role="tabpanel">
+                                    <div class="results-container">
+                                        <div id="questionsStatus">
+                                            <span class="badge bg-secondary">No questions generated</span>
+                                        </div>
+                                        <div id="questionsOutput" class="mt-3">
+                                            <p>Socratic analysis will generate questions based on detected issues</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-end mt-3">
+                                <button class="btn btn-secondary me-2" id="copyButton" disabled>
+                                    <i class="fas fa-copy me-1"></i>Copy Text
+                                </button>
+                                <button class="btn btn-primary" id="analyzeTextButton" disabled>
+                                    <i class="fas fa-brain me-1"></i>Analyze in Reflective Ecosystem
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mt-4" id="debugContainer" style="display: none;">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Debug Information</h5>
+                        </div>
+                        <div class="card-body">
+                            <pre id="debugOutput" class="bg-dark text-light p-3 rounded" style="max-height: 300px; overflow-y: auto;">Debug information will appear here</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const fileInput = document.getElementById('fileInput');
+            const uploadArea = document.getElementById('uploadArea');
+            const previewContainer = document.getElementById('previewContainer');
+            const preview = document.getElementById('preview');
+            const processButton = document.getElementById('processButton');
+            const copyButton = document.getElementById('copyButton');
+            const analyzeTextButton = document.getElementById('analyzeTextButton');
+            const debugMode = document.getElementById('debugMode');
+            const debugContainer = document.getElementById('debugContainer');
+            const debugOutput = document.getElementById('debugOutput');
+            
+            // Text output elements
+            const textOutput = document.getElementById('textOutput');
+            const textStatus = document.getElementById('textStatus');
+            const analysisOutput = document.getElementById('analysisOutput');
+            const analysisStatus = document.getElementById('analysisStatus');
+            const issuesOutput = document.getElementById('issuesOutput');
+            const issuesStatus = document.getElementById('issuesStatus');
+            const questionsOutput = document.getElementById('questionsOutput');
+            const questionsStatus = document.getElementById('questionsStatus');
+            
+            // Analysis mode radio buttons
+            const ocrMode = document.getElementById('ocrMode');
+            const multimodalMode = document.getElementById('multimodalMode');
+            const socraticMode = document.getElementById('socraticMode');
+            
+            let selectedFile = null;
+            let extractedText = '';
+            let processingStatus = 'idle';
+            
+                        // Max questions slider
+            const maxQuestionsSlider = document.getElementById('maxQuestionsSlider');
+            const maxQuestionsValue = document.getElementById('maxQuestionsValue');
+            
+            if (maxQuestionsSlider && maxQuestionsValue) {
+                maxQuestionsSlider.addEventListener('input', function() {
+                    maxQuestionsValue.textContent = this.value;
+                });
+            }
+            
+// Toggle debug mode
+            debugMode.addEventListener('change', function() {
+                debugContainer.style.display = this.checked ? 'block' : 'none';
+            });
+            
+            // Handle drag and drop
+            uploadArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                uploadArea.classList.add('border-primary');
+            });
+            
+            uploadArea.addEventListener('dragleave', function() {
+                uploadArea.classList.remove('border-primary');
+            });
+            
+            uploadArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                uploadArea.classList.remove('border-primary');
+                
+                if (e.dataTransfer.files.length > 0) {
+                    fileInput.files = e.dataTransfer.files;
+                    handleFileSelect();
+                }
+            });
+            
+            // Handle file selection
+            fileInput.addEventListener('change', handleFileSelect);
+            
+            function handleFileSelect() {
+                if (fileInput.files.length > 0) {
+                    selectedFile = fileInput.files[0];
+                    
+                    // Check if file type is supported
+                    const validTypes = ['image/jpeg', 'image/png', 'image/bmp', 'image/tiff', 'application/pdf'];
+                    if (!validTypes.includes(selectedFile.type) && !selectedFile.name.endsWith('.pdf')) {
+                        logToDebug(`File type not supported: ${selectedFile.type}`);
+                        resetUI();
+                        alert('Please select a supported file type (JPG, PNG, PDF, BMP, TIFF)');
+                        return;
+                    }
+                    
+                    // Show preview
+                    previewContainer.style.display = 'block';
+                    preview.innerHTML = '';
+                    
+                    if (selectedFile.type.startsWith('image/')) {
+                        const img = document.createElement('img');
+                        img.src = URL.createObjectURL(selectedFile);
+                        img.className = 'preview-image';
+                        preview.appendChild(img);
+                    } else {
+                        // PDF preview
+                        const pdfInfo = document.createElement('div');
+                        pdfInfo.className = 'alert alert-info';
+                        pdfInfo.innerHTML = `<i class="fas fa-file-pdf me-2"></i> <strong>${selectedFile.name}</strong> (${formatFileSize(selectedFile.size)})`;
+                        preview.appendChild(pdfInfo);
+                    }
+                    
+                    // Enable the process button
+                    processButton.disabled = false;
+                    logToDebug(`File selected: ${selectedFile.name} (${formatFileSize(selectedFile.size)})`);
+                } else {
+                    resetUI();
+                }
+            }
+            
+            
+            // Toggle socratic options based on selected mode
+            document.querySelectorAll('input[name="analysisMode"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    const socraticOptions = document.getElementById('socraticOptions');
+                    if (this.value === 'socratic') {
+                        socraticOptions.style.display = 'block';
+                    } else {
+                        socraticOptions.style.display = 'none';
+                    }
+                });
+            });
+            
+// Process button click
+            processButton.addEventListener('click', function() {
+                if (!selectedFile) return;
+                
+                // Set processing state
+                processingStatus = 'processing';
+                processButton.disabled = true;
+                processButton.innerHTML = '<div class="loading-spinner me-2"></div> Processing...';
+                
+                // Update status indicators
+                textStatus.innerHTML = '<span class="badge bg-info">Processing...</span>';
+                textOutput.textContent = 'Extracting text...';
+                
+                // Get selected mode
+                const mode = document.querySelector('input[name="analysisMode"]:checked').value;
+                logToDebug(`Processing file with mode: ${mode}`);
+                
+                                // Create FormData
+                const formData = new FormData();
+                formData.append('file', selectedFile);
+                formData.append('mode', mode);
+                
+                // Add socratic options if applicable
+                if (mode === 'socratic') {
+                    const maxQuestions = document.getElementById('maxQuestionsSlider').value;
+                    const useSre = document.getElementById('useSreCheckbox').checked;
+                    
+                    formData.append('max_questions', maxQuestions);
+                    formData.append('use_sre', useSre ? '1' : '0');
+                    
+                    logToDebug(`Socratic options: maxQuestions=${maxQuestions}, useSre=${useSre}`);
+                }
+                
+// Send to server
+                fetch('/api/multimodal/process', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    processingStatus = 'completed';
+                    logToDebug('Processing complete', data);
+                    
+                    if (data.success) {
+                        // Update UI with results
+                        updateResults(data, mode);
+                    } else {
+                        // Show error
+                        textStatus.innerHTML = '<span class="badge bg-danger">Error</span>';
+                        textOutput.textContent = `Error: ${data.error}`;
+                        
+                        analysisStatus.innerHTML = '<span class="badge bg-danger">Error</span>';
+                        analysisOutput.textContent = 'Analysis failed';
+                    }
+                })
+                .catch(error => {
+                    processingStatus = 'error';
+                    logToDebug('Error processing file', error);
+                    textStatus.innerHTML = '<span class="badge bg-danger">Error</span>';
+                    textOutput.textContent = `Error: ${error.message}`;
+                })
+                .finally(() => {
+                    processButton.disabled = false;
+                    processButton.innerHTML = '<i class="fas fa-cogs me-2"></i>Process Document';
+                });
+            });
+            
+            // Copy button click
+            copyButton.addEventListener('click', function() {
+                navigator.clipboard.writeText(extractedText).then(() => {
+                    const originalText = copyButton.innerHTML;
+                    copyButton.innerHTML = '<i class="fas fa-check me-1"></i>Copied!';
+                    setTimeout(() => {
+                        copyButton.innerHTML = originalText;
+                    }, 2000);
+                });
+            });
+            
+            // Analyze text button click
+            analyzeTextButton.addEventListener('click', function() {
+                if (!extractedText) return;
+                
+                try {
+                    console.log('Submitting text to reflection page...');
+                    
+                    // Get the current mode (OCR, Multimodal, or Socratic)
+                    const currentMode = document.querySelector('input[name="analysisMode"]:checked').value;
+                    let targetMode = 'standard'; // Default mode for reflection page
+                    
+                    // Map the multimodal mode to reflection page mode
+                    if (currentMode === 'socratic') {
+                        targetMode = 'reflective'; // Use reflective mode for socratic analysis
+                    } else if (currentMode === 'multimodal') {
+                        targetMode = 'deep'; // Use deep mode for multimodal analysis
+                    }
+                    
+                    // Create a form for POST submission instead of using URL parameters
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '/reflection';
+                    form.style.display = 'none';
+                    
+                    // Add the text as a form field
+                    const textField = document.createElement('input');
+                    textField.type = 'hidden';
+                    textField.name = 'text';
+                    textField.value = extractedText;
+                    form.appendChild(textField);
+                    
+                    // Add the mode as a form field
+                    const modeField = document.createElement('input');
+                    modeField.type = 'hidden';
+                    modeField.name = 'mode';
+                    modeField.value = targetMode;
+                    form.appendChild(modeField);
+                    
+                    // Add a debug session field
+                    const debugField = document.createElement('input');
+                    debugField.type = 'hidden';
+                    debugField.name = 'debug';
+                    debugField.value = '1';
+                    form.appendChild(debugField);
+                    
+                    // Add to document and submit
+                    document.body.appendChild(form);
+                    
+                    // Asynchronous XHR check before submitting
+                    fetch('/api/reflective/debug')
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                console.log('Session check successful, submitting form...');
+                                form.submit();
+                            } else {
+                                console.error('Session check failed:', data.error);
+                                alert('Unable to transfer text: ' + data.error);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Session check error:', error);
+                            alert('Error checking session status. Trying direct submit...');
+                            form.submit(); // Try anyway
+                        });
+                } catch (error) {
+                    console.error('Error preparing form submission:', error);
+                    alert('Error preparing to analyze in Reflective Ecosystem: ' + error.message);
+                }
+            });
+            
+            function updateResults(data, mode) {
+                // Update extracted text
+                if (data.text) {
+                    extractedText = data.text;
+                    textStatus.innerHTML = '<span class="badge bg-success">Text Extracted</span>';
+                    textOutput.textContent = data.text;
+                    copyButton.disabled = false;
+                    analyzeTextButton.disabled = false;
+                } else {
+                    textStatus.innerHTML = '<span class="badge bg-warning">No Text Found</span>';
+                    textOutput.textContent = 'No text could be extracted from this document.';
+                }
+                
+                // Update analysis if available
+                if (data.analysis) {
+                    analysisStatus.innerHTML = '<span class="badge bg-success">Analysis Complete</span>';
+                    analysisOutput.textContent = data.analysis;
+                } else {
+                    analysisStatus.innerHTML = '<span class="badge bg-secondary">No Analysis</span>';
+                    analysisOutput.textContent = 'No analysis was performed.';
+                }
+                
+                // Update issues if available
+                if (data.issues && data.issues.length > 0) {
+                    issuesStatus.innerHTML = `<span class="badge bg-warning">${data.issues.length} Issues Found</span>`;
+                    issuesOutput.innerHTML = '';
+                    
+                    data.issues.forEach(issue => {
+                        const issueType = issue.issue.toLowerCase().replace(/\s+/g, '-');
+                        const issueCard = document.createElement('div');
+                        issueCard.className = `card issue-card mb-2 p-3 ${issueType}`;
+                        
+                        issueCard.innerHTML = `
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <strong>${issue.term}</strong>
+                                    <span class="badge bg-secondary ms-2">${issue.issue}</span>
+                                </div>
+                                <div>
+                                    <span class="badge bg-info">${(issue.confidence * 100).toFixed(0)}% confidence</span>
+                                </div>
+                            </div>
+                            <p class="mt-2 mb-0">${issue.description}</p>
+                        `;
+                        
+                        issuesOutput.appendChild(issueCard);
+                    });
+                } else {
+                    issuesStatus.innerHTML = '<span class="badge bg-success">No Issues</span>';
+                    issuesOutput.innerHTML = '<p>No issues were detected in the text.</p>';
+                }
+                
+                // Update questions if available
+                if (data.questions && data.questions.length > 0) {
+                    questionsStatus.innerHTML = `<span class="badge bg-success">${data.questions.length} Questions</span>`;
+                    questionsOutput.innerHTML = '';
+                    
+                    const ul = document.createElement('ul');
+                    ul.className = 'list-group';
+                    
+                    data.questions.forEach(question => {
+                        const li = document.createElement('li');
+                        li.className = 'list-group-item bg-dark text-light border-secondary';
+                        li.innerHTML = `<i class="fas fa-question-circle me-2 text-info"></i>${question}`;
+                        ul.appendChild(li);
+                    });
+                    
+                    questionsOutput.appendChild(ul);
+                } else {
+                    questionsStatus.innerHTML = '<span class="badge bg-secondary">No Questions</span>';
+                    questionsOutput.innerHTML = '<p>No questions were generated.</p>';
+                }
+                
+                // Show appropriate tab based on mode
+                if (mode === 'multimodal') {
+                    document.getElementById('analysis-tab').click();
+                } else if (mode === 'socratic') {
+                    document.getElementById('questions-tab').click();
+                }
+            }
+            
+            function resetUI() {
+                selectedFile = null;
+                extractedText = '';
+                previewContainer.style.display = 'none';
+                preview.innerHTML = '';
+                processButton.disabled = true;
+                copyButton.disabled = true;
+                analyzeTextButton.disabled = true;
+                
+                textStatus.innerHTML = '<span class="badge bg-secondary">No file processed</span>';
+                textOutput.textContent = 'Select a file to process';
+                
+                analysisStatus.innerHTML = '<span class="badge bg-secondary">No analysis available</span>';
+                analysisOutput.textContent = 'Select multimodal or socratic analysis mode';
+                
+                issuesStatus.innerHTML = '<span class="badge bg-secondary">No issues detected</span>';
+                issuesOutput.innerHTML = '<p>Socratic analysis will detect potential issues in the text</p>';
+                
+                questionsStatus.innerHTML = '<span class="badge bg-secondary">No questions generated</span>';
+                questionsOutput.innerHTML = '<p>Socratic analysis will generate questions based on detected issues</p>';
+            }
+            
+            function logToDebug(message, data) {
+                const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
+                let logMessage = `[${timestamp}] ${message}`;
+                
+                if (data) {
+                    try {
+                        const jsonStr = JSON.stringify(data, null, 2);
+                        logMessage += '\n' + jsonStr;
+                    } catch (e) {
+                        logMessage += '\n[Object cannot be stringified]';
+                    }
+                }
+                
+                const currentLog = debugOutput.textContent;
+                debugOutput.textContent = logMessage + '\n\n' + currentLog;
+            }
+            
+            function formatFileSize(bytes) {
+                if (bytes < 1024) return bytes + ' bytes';
+                else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+                else return (bytes / 1048576).toFixed(1) + ' MB';
+            }
+        });
+    </script>
+</body>
+</html>

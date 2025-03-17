@@ -1,0 +1,100 @@
+{
+  "nodes": {
+    "conceptual_chaining": {
+      "id": "conceptual_chaining",
+      "name": "Conceptual Chaining",
+      "count": 0,
+      "success_count": 0
+    },
+    "chunked_symbolism": {
+      "id": "chunked_symbolism",
+      "name": "Chunked Symbolism",
+      "count": 0,
+      "success_count": 0
+    },
+    "expert_lexicons": {
+      "id": "expert_lexicons",
+      "name": "Expert Lexicons",
+      "count": 0,
+      "success_count": 0
+    }
+  },
+  "global_coherence": 0.8,
+  "question_history": [],
+  "meta_meta_framework": {
+    "principle_of_inquiry": "Improve critical thinking through effective Socratic questioning",
+    "dimensional_axes": {
+      "reasoning_approach": {
+        "description": "Reasoning approach to use",
+        "values": [
+          "conceptual_chaining",
+          "chunked_symbolism",
+          "expert_lexicons",
+          "socratic_questioning"
+        ]
+      },
+      "question_focus": {
+        "description": "Focus area for generated questions",
+        "values": [
+          "definitions",
+          "evidence",
+          "assumptions",
+          "implications",
+          "alternatives"
+        ]
+      },
+      "complexity_level": {
+        "description": "Complexity level of exploration",
+        "values": [
+          "simple",
+          "moderate",
+          "complex"
+        ]
+      }
+    },
+    "constraints": [
+      {
+        "constraint": "Questions must be genuinely helpful",
+        "purpose": "Ensure practical value"
+      },
+      {
+        "constraint": "Questions must address specific issues",
+        "purpose": "Maintain relevance"
+      },
+      {
+        "constraint": "Questions should be open-ended",
+        "purpose": "Encourage deeper thinking"
+      }
+    ],
+    "controlled_emergence": 0.3,
+    "feedback_loops": [
+      {
+        "name": "Question effectiveness",
+        "metric": "user_feedback",
+        "current_value": 0.5,
+        "target_value": 0.8
+      },
+      {
+        "name": "Reasoning coherence",
+        "metric": "global_coherence",
+        "current_value": 0.8,
+        "target_value": 0.9
+      },
+      {
+        "name": "Paradigm selection accuracy",
+        "metric": "paradigm_accuracy",
+        "current_value": 0.5,
+        "target_value": 0.85
+      }
+    ],
+    "adaptive_flexibility": 0.5
+  },
+  "intellisynth": {
+    "truth_value": 0.7,
+    "scrutiny_value": 0.0,
+    "improvement_value": 0.0,
+    "advancement": 0.0,
+    "alpha": 0.5,
+    "beta": 0.5
+  }
+}

@@ -1,0 +1,77 @@
+<!-- Document Preview Modal -->
+<div class="modal fade" id="documentPreviewModal" tabindex="-1" aria-labelledby="documentPreviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="documentPreviewModalLabel">
+                    <span id="previewDocumentTitle">Document Preview</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Document metadata -->
+                <div class="document-meta-info mb-4">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="meta-group">
+                                <div class="meta-label">Type</div>
+                                <div class="meta-value" id="previewDocumentType">PDF</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="meta-group">
+                                <div class="meta-label">Size</div>
+                                <div class="meta-value" id="previewDocumentSize">2.3 MB</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="meta-group">
+                                <div class="meta-label">Date Added</div>
+                                <div class="meta-value" id="previewDocumentDate">2023-05-20</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-12">
+                            <div class="meta-group">
+                                <div class="meta-label">Tags</div>
+                                <div class="meta-value" id="previewDocumentTags">None</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Document content -->
+                <div class="document-content">
+                    <h6>Content</h6>
+                    
+                    <!-- Loading placeholder -->
+                    <div class="content-placeholder">
+                        <div class="d-flex justify-content-center my-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                        <p class="text-center text-muted">Loading document content...</p>
+                    </div>
+                    
+                    <!-- Actual content -->
+                    <div id="documentContentPreview" class="document-content-preview p-3 border rounded bg-light" style="display: none; max-height: 300px; overflow-y: auto; white-space: pre-wrap;">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" id="deleteDocumentBtn">
+                    <i class="bi bi-trash"></i> Delete
+                </button>
+                <button type="button" class="btn btn-outline-secondary" id="downloadDocumentBtn">
+                    <i class="bi bi-download"></i> Download
+                </button>
+                <button type="button" class="btn btn-outline-primary" id="addToRagBtn">
+                    <i class="bi bi-plus-circle"></i> Add to RAG Context
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>

@@ -209,6 +209,17 @@
         <div id="errorAlert" class="alert alert-danger d-none">
             <strong>Resonance Disruption:</strong> <span id="errorMessage"></span>
         </div>
+        
+        {% if session_debug %}
+        <div class="card mt-3">
+            <div class="card-header bg-dark text-light">
+                <h5 class="mb-0">Session Debug Information</h5>
+            </div>
+            <div class="card-body">
+                <pre>{{ session_debug|tojson(indent=2) }}</pre>
+            </div>
+        </div>
+        {% endif %}
     </div>
     
     <!-- Bootstrap JS Bundle with Popper -->
@@ -264,6 +275,21 @@
             
             // Get initial status from the reflective ecosystem
             getReflectiveStatus();
+            
+            // Check if we have text from session
+            const sessionText = "{{ reflection_text|safe }}";
+            if (sessionText && sessionText.trim() !== '') {
+                // Set the text in the input textarea
+                textInput.value = sessionText;
+                // Check if we have a preferred mode
+                const urlParams = new URLSearchParams(window.location.search);
+                const preferredMode = urlParams.get('mode');
+                if (preferredMode && modeSelect.querySelector(`option[value="${preferredMode}"]`)) {
+                    modeSelect.value = preferredMode;
+                }
+                // Auto-trigger analysis for convenience
+                setTimeout(() => analyzeBtn.click(), 500);
+            }
             
             // Resonance level slider
             resonanceLevel.addEventListener('input', function() {

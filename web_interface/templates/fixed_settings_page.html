@@ -1,0 +1,455 @@
+{% extends "base_template.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <h3 class="my-4">Settings</h3>
+    
+    <div class="row">
+        <!-- General Settings -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">General Settings</h5>
+                </div>
+                <div class="card-body">
+                    <div class="form-group mb-3">
+                        <label for="defaultMode" class="form-label">Default Operating Mode</label>
+                        <select id="defaultMode" class="form-select">
+                            <option value="standard">Standard</option>
+                            <option value="deep">Deep</option>
+                            <option value="technical">Technical</option>
+                            <option value="creative">Creative</option>
+                        </select>
+                        <div class="form-text">Choose the reasoning mode for the assistant.</div>
+                    </div>
+                    
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="globalSoTSwitch" checked>
+                        <label class="form-check-label" for="globalSoTSwitch">Enable Sequential Thinking by default</label>
+                    </div>
+                    
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="globalRAGSwitch" checked>
+                        <label class="form-check-label" for="globalRAGSwitch">Enable Document RAG by default</label>
+                    </div>
+                    
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="globalSRESwitch" checked>
+                        <label class="form-check-label" for="globalSRESwitch">Enable Reflective Ecosystem by default</label>
+                    </div>
+                    
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="showAnalysisSwitch" checked>
+                        <label class="form-check-label" for="showAnalysisSwitch">Show Analysis Details</label>
+                    </div>
+                    
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="darkModeSwitch">
+                        <label class="form-check-label" for="darkModeSwitch">Dark Mode</label>
+                    </div>
+
+                    <div class="d-grid mt-4">
+                        <button id="clearChatBtn" class="btn btn-outline-secondary">
+                            <i class="bi bi-trash"></i> Clear Chat History
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Model Settings -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Model Settings</h5>
+                </div>
+                <div class="card-body">
+                    <div class="form-group mb-3">
+                        <label for="ollamaModel" class="form-label">Ollama Model (Text)</label>
+                        <select id="ollamaModel" class="form-select">
+                            <option value="gemma3:latest">gemma3:latest</option>
+                            <option value="llama3:latest">llama3:latest</option>
+                            <option value="mistral:latest">mistral:latest</option>
+                            <option value="phi3:latest">phi3:latest</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group mb-3">
+                        <label for="multimodalModel" class="form-label">Multimodal Model</label>
+                        <select id="multimodalModel" class="form-select">
+                            <option value="llava:latest">llava:latest</option>
+                            <option value="bakllava:latest">bakllava:latest</option>
+                            <option value="moondream:latest">moondream:latest</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group mb-3">
+                        <label for="embeddingModel" class="form-label">Embedding Model</label>
+                        <select id="embeddingModel" class="form-select">
+                            <option value="nomic-embed-text:latest">nomic-embed-text:latest</option>
+                            <option value="all-MiniLM-L6-v2:latest">all-MiniLM-L6-v2:latest</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group mb-3">
+                        <label for="preferredProvider" class="form-label">Preferred Provider</label>
+                        <select id="preferredProvider" class="form-select">
+                            <option value="auto">Auto</option>
+                            <option value="ollama">Ollama</option>
+                            <option value="lm_studio">LM Studio</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group mb-3">
+                        <label for="temperature" class="form-label">Temperature: <span id="temperatureValue">0.7</span></label>
+                        <input type="range" class="form-range" min="0" max="1" step="0.1" value="0.7" id="temperature">
+                    </div>
+
+                    <div class="model-info-section mt-3 p-3 bg-light rounded">
+                        <h6><i class="bi bi-info-circle"></i> Model Information</h6>
+                        <div class="small">
+                            <p><strong>LLM:</strong> <span id="currentLLM">gemma3:latest</span></p>
+                            <p><strong>SoT Enabled:</strong> <span id="sotEnabled">Yes</span></p>
+                            <p><strong>SRE Enabled:</strong> <span id="sreEnabled">Yes</span></p>
+                            <p><strong>Provider:</strong> <span id="providerName">ollama</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Detector Settings -->
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Detector Settings</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="nav nav-tabs" id="detectorTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="vague-tab" data-bs-toggle="tab" data-bs-target="#vagueTab" type="button" role="tab">Vague Terms</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="gender-tab" data-bs-toggle="tab" data-bs-target="#genderTab" type="button" role="tab">Gender Bias</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="stereotype-tab" data-bs-toggle="tab" data-bs-target="#stereotypeTab" type="button" role="tab">Stereotypes</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="inclusive-tab" data-bs-toggle="tab" data-bs-target="#inclusiveTab" type="button" role="tab">Non-Inclusive</button>
+                        </li>
+                    </ul>
+                    
+                    <div class="tab-content mt-3" id="detectorTabContent">
+                        <div class="tab-pane fade show active" id="vagueTab" role="tabpanel">
+                            <div class="form-group">
+                                <label for="vagueTerms" class="form-label">Vague Terms (one per line)</label>
+                                <textarea id="vagueTerms" class="form-control" rows="8">{{ "\n".join(vague_patterns) }}</textarea>
+                            </div>
+                        </div>
+                        
+                        <div class="tab-pane fade" id="genderTab" role="tabpanel">
+                            <div class="form-group">
+                                <label for="genderBias" class="form-label">Gender Bias Terms (one per line)</label>
+                                <textarea id="genderBias" class="form-control" rows="8">{{ "\n".join(gender_bias_patterns) }}</textarea>
+                            </div>
+                        </div>
+                        
+                        <div class="tab-pane fade" id="stereotypeTab" role="tabpanel">
+                            <div class="form-group">
+                                <label for="stereotypes" class="form-label">Stereotype Terms (one per line)</label>
+                                <textarea id="stereotypes" class="form-control" rows="8">{{ "\n".join(stereotype_patterns) }}</textarea>
+                            </div>
+                        </div>
+                        
+                        <div class="tab-pane fade" id="inclusiveTab" role="tabpanel">
+                            <div class="form-group">
+                                <label for="nonInclusive" class="form-label">Non-Inclusive Terms (one per line)</label>
+                                <textarea id="nonInclusive" class="form-control" rows="8">{{ "\n".join(non_inclusive_patterns) }}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid mt-3">
+                        <button id="saveDetectorSettings" class="btn btn-primary">
+                            <i class="bi bi-save"></i> Save Detector Settings
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Settings -->
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">System Settings</h5>
+                </div>
+                <div class="card-body">
+                    <div class="form-group mb-3">
+                        <label for="maxContextSize" class="form-label">Maximum Context Size</label>
+                        <select id="maxContextSize" class="form-select">
+                            <option value="4096">4096 tokens</option>
+                            <option value="8192">8192 tokens</option>
+                            <option value="16384">16384 tokens</option>
+                            <option value="32768">32768 tokens</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group mb-3">
+                        <label for="systemPrompt" class="form-label">System Prompt</label>
+                        <textarea id="systemPrompt" class="form-control" rows="4">You are a helpful AI assistant with integrated capabilities including document context, reflection, and multimodal analysis. You help users think critically through Socratic questioning and structured reasoning.</textarea>
+                    </div>
+                    
+                    <div class="d-grid mt-3">
+                        <button id="saveSystemSettings" class="btn btn-primary">
+                            <i class="bi bi-save"></i> Save System Settings
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Save Settings Success Toast -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="settingsSavedToast" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body">
+                <i class="bi bi-check-circle-fill me-2"></i> Settings saved successfully!
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Temperature slider
+        const temperatureSlider = document.getElementById('temperature');
+        const temperatureValue = document.getElementById('temperatureValue');
+        
+        if (temperatureSlider && temperatureValue) {
+            temperatureSlider.addEventListener('input', function() {
+                temperatureValue.textContent = this.value;
+            });
+        }
+        
+        // Save detector settings
+        const saveDetectorBtn = document.getElementById('saveDetectorSettings');
+        if (saveDetectorBtn) {
+            saveDetectorBtn.addEventListener('click', function() {
+                const vagueTerms = document.getElementById('vagueTerms').value.split('\n').filter(line => line.trim());
+                const genderBias = document.getElementById('genderBias').value.split('\n').filter(line => line.trim());
+                const stereotypes = document.getElementById('stereotypes').value.split('\n').filter(line => line.trim());
+                const nonInclusive = document.getElementById('nonInclusive').value.split('\n').filter(line => line.trim());
+                
+                // Send settings to API
+                fetch('/api/settings/detectors', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        vague: vagueTerms,
+                        gender_bias: genderBias,
+                        stereotype: stereotypes,
+                        non_inclusive: nonInclusive
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Show success toast
+                        const toast = new bootstrap.Toast(document.getElementById('settingsSavedToast'));
+                        toast.show();
+                    } else {
+                        console.error('Error saving detector settings:', data.error);
+                        alert('Error saving settings: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error saving settings: ' + error);
+                });
+            });
+        }
+        
+        // Save model settings
+        function saveModelSettings() {
+            const ollamaModel = document.getElementById('ollamaModel').value;
+            const multimodalModel = document.getElementById('multimodalModel').value;
+            const embeddingModel = document.getElementById('embeddingModel').value;
+            const preferredProvider = document.getElementById('preferredProvider').value;
+            const temperature = document.getElementById('temperature').value;
+            
+            // Send settings to API
+            fetch('/api/settings/models', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    ollama_model: ollamaModel,
+                    multimodal_model: multimodalModel,
+                    embedding_model: embeddingModel,
+                    preferred_provider: preferredProvider,
+                    temperature: temperature
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update model info display
+                    document.getElementById('currentLLM').textContent = ollamaModel;
+                    
+                    // Show success toast
+                    const toast = new bootstrap.Toast(document.getElementById('settingsSavedToast'));
+                    toast.show();
+                } else {
+                    console.error('Error saving model settings:', data.error);
+                    alert('Error saving settings: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error saving settings: ' + error);
+            });
+        }
+        
+        // Add event listeners to model settings fields
+        document.getElementById('ollamaModel').addEventListener('change', saveModelSettings);
+        document.getElementById('multimodalModel').addEventListener('change', saveModelSettings);
+        document.getElementById('embeddingModel').addEventListener('change', saveModelSettings);
+        document.getElementById('preferredProvider').addEventListener('change', saveModelSettings);
+        
+        // Save general settings
+        function saveGeneralSettings() {
+            const defaultMode = document.getElementById('defaultMode').value;
+            const enableSoT = document.getElementById('globalSoTSwitch').checked;
+            const enableRAG = document.getElementById('globalRAGSwitch').checked;
+            const enableSRE = document.getElementById('globalSRESwitch').checked;
+            const showAnalysis = document.getElementById('showAnalysisSwitch').checked;
+            const darkMode = document.getElementById('darkModeSwitch').checked;
+            
+            // Send settings to API
+            fetch('/api/settings/general', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    default_mode: defaultMode,
+                    enable_sot: enableSoT,
+                    enable_rag: enableRAG,
+                    enable_sre: enableSRE,
+                    show_analysis: showAnalysis,
+                    dark_mode: darkMode
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update SoT/SRE enabled display
+                    document.getElementById('sotEnabled').textContent = enableSoT ? 'Yes' : 'No';
+                    document.getElementById('sreEnabled').textContent = enableSRE ? 'Yes' : 'No';
+                    
+                    // Apply dark mode if needed
+                    if (darkMode) {
+                        document.body.classList.add('dark-mode');
+                    } else {
+                        document.body.classList.remove('dark-mode');
+                    }
+                    
+                    // Show success toast
+                    const toast = new bootstrap.Toast(document.getElementById('settingsSavedToast'));
+                    toast.show();
+                } else {
+                    console.error('Error saving general settings:', data.error);
+                    alert('Error saving settings: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error saving settings: ' + error);
+            });
+        }
+        
+        // Add event listeners to general settings fields
+        document.getElementById('defaultMode').addEventListener('change', saveGeneralSettings);
+        document.getElementById('globalSoTSwitch').addEventListener('change', saveGeneralSettings);
+        document.getElementById('globalRAGSwitch').addEventListener('change', saveGeneralSettings);
+        document.getElementById('globalSRESwitch').addEventListener('change', saveGeneralSettings);
+        document.getElementById('showAnalysisSwitch').addEventListener('change', saveGeneralSettings);
+        document.getElementById('darkModeSwitch').addEventListener('change', saveGeneralSettings);
+        
+        // Save system settings
+        const saveSystemBtn = document.getElementById('saveSystemSettings');
+        if (saveSystemBtn) {
+            saveSystemBtn.addEventListener('click', function() {
+                const maxContextSize = document.getElementById('maxContextSize').value;
+                const systemPrompt = document.getElementById('systemPrompt').value;
+                
+                // Send settings to API
+                fetch('/api/settings/system', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        max_context_size: maxContextSize,
+                        system_prompt: systemPrompt
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Show success toast
+                        const toast = new bootstrap.Toast(document.getElementById('settingsSavedToast'));
+                        toast.show();
+                    } else {
+                        console.error('Error saving system settings:', data.error);
+                        alert('Error saving settings: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error saving settings: ' + error);
+                });
+            });
+        }
+        
+        // Clear chat button
+        const clearChatBtn = document.getElementById('clearChatBtn');
+        if (clearChatBtn) {
+            clearChatBtn.addEventListener('click', function() {
+                if (confirm('Are you sure you want to clear your chat history? This cannot be undone.')) {
+                    fetch('/api/chat/clear', {
+                        method: 'POST'
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Show success toast
+                            const toast = new bootstrap.Toast(document.getElementById('settingsSavedToast'));
+                            toast.show();
+                        } else {
+                            console.error('Error clearing chat:', data.error);
+                            alert('Error clearing chat: ' + data.error);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error clearing chat: ' + error);
+                    });
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}
