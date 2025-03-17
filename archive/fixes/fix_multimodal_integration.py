@@ -207,7 +207,7 @@ def process_with_multimodal_llm(file_path: str) -> Dict[str, Any]:
         import json
         
         # Load config
-        config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'config.json'))
+        config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../../../../../../config.json'))
         
         if not os.path.exists(config_path):
             return {
@@ -323,7 +323,7 @@ def process_file(file_path: str, use_multimodal: bool = False) -> Dict[str, Any]
             
             if response.status_code == 200:
                 # Load config
-                config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'config.json'))
+                config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../../../../../../config.json'))
                 
                 if os.path.exists(config_path):
                     with open(config_path, 'r') as f:

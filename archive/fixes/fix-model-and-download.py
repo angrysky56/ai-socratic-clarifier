@@ -9,7 +9,7 @@ from pathlib import Path
 def fix_model_display():
     """Fix the model display to show the correct model from config."""
     # First, check the config file to confirm the model
-    config_path = Path(__file__).parent / "config.json"
+    config_path = Path(__file__).parent / "../../../../../../../../config.json"
     if not config_path.exists():
         print(f"Error: Config file not found at {config_path}")
         return False

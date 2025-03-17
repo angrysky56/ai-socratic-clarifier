@@ -148,8 +148,8 @@ def install_poppler():
     return False
 
 def update_config_for_multimodal():
-    """Update config.json to include multimodal settings."""
-    config_path = os.path.join(os.path.dirname(__file__), 'config.json')
+    """Update ../../../../../../../../config.json to include multimodal settings."""
+    config_path = os.path.join(os.path.dirname(__file__), '../../../../../../../../config.json')
     
     try:
         # Load existing config

@@ -56,10 +56,10 @@ def check_environment():
     else:
         print(f"Virtual environment active: {sys.prefix}")
     
-    # Check if config.json exists
-    config_path = os.path.join(base_dir, "config.json")
+    # Check if ../../../../../../../../config.json exists
+    config_path = os.path.join(base_dir, "../../../../../../../../config.json")
     if not os.path.exists(config_path):
-        print("Warning: config.json not found. Creating default configuration...")
+        print("Warning: ../../../../../../../../config.json not found. Creating default configuration...")
         
         default_config = {
             "integrations": {
@@ -188,7 +188,7 @@ def check_ollama():
     print("\nChecking Ollama...")
     try:
         # Load the config to get the model name
-        config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+        config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../../../../../../config.json")
         model_name = "gemma3"  # Default fallback
         multimodal_model = "llava:latest"  # Default multimodal model
         

@@ -66,8 +66,8 @@ def load_custom_patterns():
     return patterns
 
 def load_config():
-    """Load configuration from config.json."""
-    config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'config.json'))
+    """Load configuration from ../../../../../../../../config.json."""
+    config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '../../../../../../../../config.json'))
     default_config = {
         "integrations": {
             "lm_studio": {

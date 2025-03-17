@@ -21,8 +21,8 @@ def check_ollama_connectivity():
             print("✅ Ollama connection successful")
             print(f"Available models: {[m.get('name') for m in models]}")
             
-            # Check if the model in config.json is available
-            config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+            # Check if the model in ../../../../../../../../config.json is available
+            config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../../../../../../config.json")
             if os.path.exists(config_path):
                 with open(config_path, 'r') as f:
                     config = json.load(f)
@@ -34,7 +34,7 @@ def check_ollama_connectivity():
                         print(f"✅ Default model '{default_model}' is available in Ollama")
                     else:
                         print(f"❌ Default model '{default_model}' is NOT available in Ollama")
-                        print("Consider updating config.json to use one of the available models")
+                        print("Consider updating ../../../../../../../../config.json to use one of the available models")
             
             return True
         else:
@@ -69,9 +69,9 @@ def check_sot_integration():
 
 def apply_direct_fixes():
     """Apply direct fixes to known issues."""
-    # Fix 1: Update config.json to ensure the correct model is used
+    # Fix 1: Update ../../../../../../../../config.json to ensure the correct model is used
     try:
-        config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+        config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../../../../../../config.json")
         if os.path.exists(config_path):
             with open(config_path, 'r') as f:
                 config = json.load(f)
@@ -93,7 +93,7 @@ def apply_direct_fixes():
                     with open(config_path, 'w') as f:
                         json.dump(config, f, indent=4)
                     
-                    print(f"✅ Updated config.json with available model")
+                    print(f"✅ Updated ../../../../../../../../config.json with available model")
     except Exception as e:
         print(f"❌ Error updating config: {e}")
     
@@ -197,7 +197,7 @@ def generate_socratic_questions(text, issues, sot_paradigm=None):
     
     # Generate questions using direct Ollama integration
     # Get model from config
-    config_path = os.path.join(os.path.dirname(__file__), '..', 'config.json')
+    config_path = os.path.join(os.path.dirname(__file__), '..', '../../../../../../../../config.json')
     model = "deepseek-r1:7b"  # Default
     
     if os.path.exists(config_path):
@@ -266,7 +266,7 @@ def direct_analyze_text(text, mode="standard", use_sot=True):
     \"\"\"
     
     # Get model from config
-    config_path = os.path.join(os.path.dirname(__file__), '..', 'config.json')
+    config_path = os.path.join(os.path.dirname(__file__), '..', '../../../../../../../../config.json')
     model = "deepseek-r1:7b"  # Default
     
     if os.path.exists(config_path):

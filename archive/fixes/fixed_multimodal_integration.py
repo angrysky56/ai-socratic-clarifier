@@ -42,8 +42,8 @@ except ImportError:
 
 
 def load_config():
-    """Load configuration from config.json."""
-    config_path = os.path.join(os.path.dirname(__file__), 'config.json')
+    """Load configuration from ../../../../../../../../config.json."""
+    config_path = os.path.join(os.path.dirname(__file__), '../../../../../../../../config.json')
     try:
         if os.path.exists(config_path):
             with open(config_path, 'r') as f:
@@ -341,8 +341,8 @@ def process_file(file_path: str, use_multimodal: bool = True) -> Dict[str, Any]:
 
 
 def update_config_for_multimodal():
-    """Update config.json to include multimodal settings."""
-    config_path = os.path.join(os.path.dirname(__file__), 'config.json')
+    """Update ../../../../../../../../config.json to include multimodal settings."""
+    config_path = os.path.join(os.path.dirname(__file__), '../../../../../../../../config.json')
     
     try:
         # Load existing config

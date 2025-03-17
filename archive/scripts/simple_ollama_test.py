@@ -8,7 +8,7 @@ import os
 
 def main():
     # Get model from config
-    config_path = os.path.join(os.path.dirname(__file__), 'config.json')
+    config_path = os.path.join(os.path.dirname(__file__), '../../../../../../../../config.json')
     model = "gemma3"  # Default
     
     try:

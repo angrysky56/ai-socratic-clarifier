@@ -23,11 +23,11 @@ def check_venv():
 
 def check_configuration():
     """Check if the configuration file exists and is valid."""
-    config_path = Path("config.json")
+    config_path = Path("../../../../../../../../config.json")
     
     if not config_path.exists():
         print("Error: Configuration file not found.")
-        print("Please run the install.py script first or create a config.json file.")
+        print("Please run the install.py script first or create a ../../../../../../../../config.json file.")
         sys.exit(1)
     
     try:
@@ -123,7 +123,7 @@ def main():
         if not check_ollama():
             print("Warning: Ollama is enabled but doesn't appear to be running.")
             print("Please start Ollama first with 'ollama serve' and try again,")
-            print("or disable Ollama in the config.json file.")
+            print("or disable Ollama in the ../../../../../../../../config.json file.")
             answer = input("Continue anyway? (y/n): ")
             if answer.lower() != "y":
                 print("Exiting.")

@@ -22,6 +22,14 @@
         "use_llm_questions": true,
         "use_llm_reasoning": true,
         "use_sot": true,
-        "use_multimodal": true
+        "use_multimodal": true,
+        "sre_global_resonance": 0.8,
+        "sre_adaptive_flexibility": 0.5,
+        "use_sre_visualization": true,
+        "auto_expand_sre": true,
+        "sot": {
+            "default_paradigm": "auto"
+        },
+        "ecosystem_state_path": "sequential_thinking/ecosystem_state.json"
     }
 }

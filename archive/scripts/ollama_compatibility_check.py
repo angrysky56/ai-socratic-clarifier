@@ -12,7 +12,7 @@ import time
 
 def load_config():
     """Load configuration from the config file."""
-    config_path = os.path.join(os.path.dirname(__file__), 'config.json')
+    config_path = os.path.join(os.path.dirname(__file__), '../../../../../../../../config.json')
     try:
         if os.path.exists(config_path):
             with open(config_path, 'r') as f:

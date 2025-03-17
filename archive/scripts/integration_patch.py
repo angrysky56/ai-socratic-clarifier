@@ -95,7 +95,7 @@ def integrate_fixed_analyzer():
     Analyze text using direct Ollama integration and SoT.
     \"\"\"
     # Get model from config
-    config_path = os.path.join(os.path.dirname(__file__), '..', 'config.json')
+    config_path = os.path.join(os.path.dirname(__file__), '..', '../../../../../../../../config.json')
     model = "gemma3"  # Default
     
     if os.path.exists(config_path):

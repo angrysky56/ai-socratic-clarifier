@@ -55,10 +55,10 @@ def setup_config():
     """Set up the configuration file."""
     print("Setting up configuration...")
     
-    config_path = Path("config.json")
+    config_path = Path("../../../../../../../../config.json")
     example_config_path = Path("config.example.json")
     
-    # If config.json already exists, ask if it should be replaced
+    # If ../../../../../../../../config.json already exists, ask if it should be replaced
     if config_path.exists():
         answer = input("Configuration file already exists. Replace it? (y/n): ")
         if answer.lower() != "y":

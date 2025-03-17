@@ -17,7 +17,7 @@ from loguru import logger
 # Initialize the clarifier
 def initialize_clarifier():
     """Initialize the clarifier with the configuration."""
-    config_path = os.path.join(os.path.dirname(__file__), 'config.json')
+    config_path = os.path.join(os.path.dirname(__file__), '../../../../../../../../config.json')
     
     try:
         if os.path.exists(config_path):

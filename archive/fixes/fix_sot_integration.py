@@ -239,7 +239,7 @@ setup(
 
 def enable_sot_in_config():
     """Enable SoT in the config file."""
-    config_path = os.path.join(os.path.dirname(__file__), 'config.json')
+    config_path = os.path.join(os.path.dirname(__file__), '../../../../../../../../config.json')
     
     if not os.path.exists(config_path):
         logger.error(f"Config file not found at: {config_path}")
@@ -259,9 +259,9 @@ def enable_sot_in_config():
                 with open(config_path, 'w') as f:
                     json.dump(config, f, indent=4)
                 
-                logger.info("Enabled SoT in config.json")
+                logger.info("Enabled SoT in ../../../../../../../../config.json")
             else:
-                logger.info("SoT is already enabled in config.json")
+                logger.info("SoT is already enabled in ../../../../../../../../config.json")
             
             return True
         else:
