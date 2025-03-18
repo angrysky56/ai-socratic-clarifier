@@ -32,7 +32,7 @@ An advanced system for enhancing critical thinking through AI-assisted questioni
    ```bash
    # Create a venv
    python -m venv venv
-   source venv/bin/activate
+   source venv/bin/activate # On Windows, use 'venv\Scripts\activate'
    # Install dependencies
    pip install -r requirements.txt
    python install_dependencies.py
