@@ -30,6 +30,8 @@ An advanced system for enhancing critical thinking through AI-assisted questioni
 
 2. Install dependencies:
    ```bash
+   # Create a venv
+   python3 -m venv venv
    python install_dependencies.py
    ```
 
