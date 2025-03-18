@@ -47,6 +47,12 @@ An advanced system for enhancing critical thinking through AI-assisted questioni
    ollama pull llava:latest     # Multimodal model for image processing (optional)
    ```
 
+   Copy the configuration file:
+   ```bash
+   cp config.example.py config.py
+   ```
+   Edit `config.py` to set the model and other configurations if desired.
+
 4. Start the application:
    ```bash
    python start_ui.py
