@@ -31,8 +31,12 @@ An advanced system for enhancing critical thinking through AI-assisted questioni
 2. Install dependencies:
    ```bash
    # Create a venv
-   python3 -m venv venv
+   python -m venv venv
+   source venv/bin/activate
+   # Install dependencies
+   pip install -r requirements.txt
    python install_dependencies.py
+
    ```
 
 3. Configure Ollama models:
