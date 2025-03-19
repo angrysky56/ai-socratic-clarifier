@@ -63,9 +63,9 @@ Currently in development and not functioning properly due to me not being a code
    ```
 
 5. Open your browser and navigate to:
-   ```
+   
    http://localhost:5000
-   ```
+   
 
 
 ## Configuration
@@ -119,7 +119,8 @@ Configuration options are available in `config.json`:
 }
 ```
 
-## Advanced Features
+## Advanced Features- I need to fix a lot of features currently, feel free to contribute suggest or start issues.
+See the wiki for more conceptual information.
 
 ### Advanced RAG Integration
 
@@ -130,7 +131,8 @@ The system includes enhanced Retrieval-Augmented Generation (RAG) capabilities:
 - Better multimodal document processing
 - Smarter context integration in prompts
 
-To enable these features:
+Hopefully this is unneeded but it may work:
+To enable these features, 
 
 ```bash
 ./apply_advanced_rag_fixes.sh
@@ -138,7 +140,7 @@ To enable these features:
 
 See `ADVANCED_RAG_README.md` for detailed information.
 
-## Troubleshooting
+## Troubleshooting- this is more my idealized solution when everything is working- DO NOT USE, yet. lol
 
 If you encounter issues:
 
