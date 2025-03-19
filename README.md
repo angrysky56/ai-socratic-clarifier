@@ -10,7 +10,7 @@ Currently in development and not functioning properly due to me not being a code
 - **Enhanced UI**: A consolidated single-window interface with document management and reflective visualization
 - **Socratic Question Generation**: Analyze text and generate insightful questions to promote critical thinking
 - **Symbiotic Reflective Ecosystem (SRE)**: Advanced reflective reasoning system for deeper analysis
-- **Sequential of Thought (SoT)**: Structured reasoning approach for complex problem-solving
+- **Sketch of Thought [SoT](https://github.com/SimonAytes/SoT)**: Efficiently structured reasoning approach for complex problem-solving.
 - **Document Management**: Upload, view, and use documents as context for AI analysis
 - **Multimodal Support**: Process images and PDFs using OCR and multimodal AI models
 - **RAG Context**: Use uploaded documents as retrieval-augmented generation context for more informed AI responses
