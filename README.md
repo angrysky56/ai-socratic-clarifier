@@ -2,6 +2,9 @@
 
 An advanced system for enhancing critical thinking through AI-assisted questioning and reflection. The AI-Socratic-Clarifier analyzes text and generates Socratic questions that prompt deeper reflection and exploration of ideas.
 
+Currently in development and not functioning properly due to me not being a coder.
+![alt text](image.png)
+
 ## Key Features
 
 - **Enhanced UI**: A consolidated single-window interface with document management and reflective visualization
