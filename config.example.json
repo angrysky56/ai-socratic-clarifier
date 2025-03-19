@@ -11,9 +11,11 @@
             "enabled": true,
             "base_url": "http://localhost:11434/api",
             "api_key": null,
-            "default_model": "llama3",
+            "default_model": "gemma3:latest",
             "default_embedding_model": "nomic-embed-text",
-            "timeout": 60
+            "timeout": 60,
+            "context_length": 8192,
+            "multimodal_model": "llava:latest"
         }
     },
     "settings": {
@@ -21,6 +23,22 @@
         "use_llm_questions": true,
         "use_llm_reasoning": true,
         "use_sot": true,
-        "use_multimodal": true
+        "use_multimodal": true,
+        "sre_global_resonance": 0.8,
+        "sre_adaptive_flexibility": 0.5,
+        "use_sre_visualization": true,
+        "auto_expand_sre": true,
+        "sot": {
+            "default_paradigm": "auto"
+        },
+        "use_document_rag": true,
+        "advanced_rag": true,
+        "rag_context_limit": 50000,
+        "use_model_for_rag": true,
+        "socratic_reasoning": {
+            "enabled": true,
+            "system_prompt": "You are a master of Socratic questioning who helps people improve their critical thinking. Your purpose is to craft precise, thoughtful questions that identify potential issues in people's statements. Based on the text and specific issues detected, create thought-provoking questions that will: 1) Encourage the person to recognize their own assumptions, 2) Help them examine whether generalizations account for exceptions, 3) Prompt consideration of evidence for claims made, 4) Lead them to clarify vague or imprecise language, 5) Guide reflection on normative statements that impose values. Make each question genuinely useful for deepening understanding, not rhetorical. Each question should directly address a specific issue identified in the text.",
+            "reasoning_depth": "deep"
+        }
     }
 }

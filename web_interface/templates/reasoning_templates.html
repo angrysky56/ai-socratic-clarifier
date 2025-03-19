@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reasoning Templates - AI-Socratic-Clarifier</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <style>
+        .template-container {
+            display: flex;
+            flex-direction: row;
+            height: calc(100vh - 100px);
+        }
+        .template-list {
+            width: 300px;
+            overflow-y: auto;
+            border-right: 1px solid #333;
+            padding: 20px;
+            background-color: #1a1a2e;
+        }
+        .template-item {
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .template-item:hover {
+            background-color: #2a2a4e;
+        }
+        .template-item.active {
+            background-color: #304d6d;
+        }
+        .template-editor {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .editor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .editor-actions {
+            display: flex;
+            gap: 10px;
+        }
+        textarea {
+            width: 100%;
+            height: calc(100vh - 200px);
+            background-color: #1e1e30;
+            color: #e2e2e2;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 12px;
+            font-family: monospace;
+        }
+        .btn {
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            border: none;
+            color: white;
+            font-weight: bold;
+        }
+        .btn-primary {
+            background-color: #2962ff;
+        }
+        .btn-success {
+            background-color: #43a047;
+        }
+        .btn-danger {
+            background-color: #d32f2f;
+        }
+        .template-info {
+            margin-bottom: 15px;
+        }
+        .template-info p {
+            margin: 5px 0;
+            color: #aaa;
+        }
+        .status-message {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .status-success {
+            background-color: rgba(67, 160, 71, 0.2);
+            color: #81c784;
+        }
+        .status-error {
+            background-color: rgba(211, 47, 47, 0.2);
+            color: #e57373;
+        }
+        .new-template-btn {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <header class="app-header">
+        <div class="header-content">
+            <h1>AI-Socratic-Clarifier</h1>
+            <div class="nav-links">
+                <a href="/socratic">Chat</a>
+                <a href="/reasoning_templates" class="active">Reasoning Templates</a>
+                <a href="/settings">Settings</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="template-container">
+        <div class="template-list">
+            <button id="new-template-btn" class="btn btn-primary new-template-btn">New Template</button>
+            <div id="templates-list-container">
+                <!-- Templates will be loaded here -->
+                <div class="loading">Loading templates...</div>
+            </div>
+        </div>
+        
+        <div class="template-editor">
+            <div class="editor-header">
+                <h2 id="editor-title">Template Editor</h2>
+                <div class="editor-actions">
+                    <button id="save-btn" class="btn btn-success">Save</button>
+                    <button id="set-active-btn" class="btn btn-primary">Set Active</button>
+                    <button id="delete-btn" class="btn btn-danger">Delete</button>
+                </div>
+            </div>
+            
+            <div id="template-info" class="template-info">
+                <!-- Template info will be displayed here -->
+            </div>
+            
+            <div id="status-message" class="status-message" style="display: none;"></div>
+            
+            <textarea id="template-content" placeholder="Select a template or create a new one"></textarea>
+        </div>
+    </main>
+
+    <script>
+        // Global state
+        let templates = [];
+        let activeTemplate = null;
+        let currentEditingTemplate = null;
+        
+        // DOM elements
+        const templatesList = document.getElementById('templates-list-container');
+        const editorTitle = document.getElementById('editor-title');
+        const templateInfo = document.getElementById('template-info');
+        const templateContent = document.getElementById('template-content');
+        const saveBtn = document.getElementById('save-btn');
+        const setActiveBtn = document.getElementById('set-active-btn');
+        const deleteBtn = document.getElementById('delete-btn');
+        const newTemplateBtn = document.getElementById('new-template-btn');
+        const statusMessage = document.getElementById('status-message');
+        
+        // Load templates
+        async function loadTemplates() {
+            try {
+                const response = await fetch('/api/reasoning_templates');
+                const data = await response.json();
+                
+                if (data.success) {
+                    templates = data.templates;
+                    activeTemplate = data.active_template;
+                    renderTemplatesList();
+                } else {
+                    showStatusMessage(`Error: ${data.error}`, false);
+                }
+            } catch (error) {
+                showStatusMessage(`Failed to load templates: ${error.message}`, false);
+            }
+        }
+        
+        // Render templates list
+        function renderTemplatesList() {
+            templatesList.innerHTML = '';
+            
+            templates.forEach(template => {
+                const templateItem = document.createElement('div');
+                templateItem.className = `template-item ${template.name === activeTemplate ? 'active' : ''}`;
+                templateItem.textContent = template.name;
+                templateItem.dataset.name = template.name;
+                
+                templateItem.addEventListener('click', () => loadTemplate(template.name));
+                
+                templatesList.appendChild(templateItem);
+            });
+        }
+        
+        // Load a specific template
+        async function loadTemplate(templateName) {
+            try {
+                const response = await fetch(`/api/reasoning_templates/${templateName}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentEditingTemplate = data.template;
+                    editorTitle.textContent = `Editing: ${currentEditingTemplate.name}`;
+                    
+                    // Show template info
+                    templateInfo.innerHTML = `
+                        <p><strong>Description:</strong> ${currentEditingTemplate.description || 'No description'}</p>
+                        <p><strong>Version:</strong> ${currentEditingTemplate.version || '1.0.0'}</p>
+                        <p><strong>Author:</strong> ${currentEditingTemplate.author || 'Anonymous'}</p>
+                        <p><strong>Status:</strong> ${templateName === activeTemplate ? 'Active' : 'Inactive'}</p>
+                    `;
+                    
+                    // Format JSON with 2-space indentation
+                    templateContent.value = JSON.stringify(currentEditingTemplate, null, 2);
+                    
+                    // Update UI state
+                    setActiveBtn.disabled = templateName === activeTemplate;
+                    saveBtn.disabled = false;
+                    deleteBtn.disabled = false;
+                    
+                    // Highlight selected template
+                    document.querySelectorAll('.template-item').forEach(item => {
+                        item.classList.toggle('active', item.dataset.name === templateName);
+                    });
+                } else {
+                    showStatusMessage(`Error: ${data.error}`, false);
+                }
+            } catch (error) {
+                showStatusMessage(`Failed to load template: ${error.message}`, false);
+            }
+        }
+        
+        // Save template
+        async function saveTemplate() {
+            try {
+                // Parse the editor content
+                let templateData;
+                try {
+                    templateData = JSON.parse(templateContent.value);
+                } catch (jsonError) {
+                    showStatusMessage(`Invalid JSON: ${jsonError.message}`, false);
+                    return;
+                }
+                
+                // Check required fields
+                if (!templateData.name || !templateData.system_prompt) {
+                    showStatusMessage('Template must have "name" and "system_prompt" fields', false);
+                    return;
+                }
+                
+                // Update or create
+                const isNew = !templates.some(t => t.name === currentEditingTemplate?.name);
+                const url = isNew 
+                    ? '/api/reasoning_templates'
+                    : `/api/reasoning_templates/${currentEditingTemplate.name}`;
+                
+                const method = isNew ? 'POST' : 'PUT';
+                
+                const response = await fetch(url, {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        template: templateData
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showStatusMessage(data.message, true);
+                    await loadTemplates();
+                    
+                    // If this was a new template, load it in the editor
+                    if (isNew) {
+                        await loadTemplate(templateData.name);
+                    }
+                } else {
+                    showStatusMessage(`Error: ${data.error}`, false);
+                }
+            } catch (error) {
+                showStatusMessage(`Failed to save template: ${error.message}`, false);
+            }
+        }
+        
+        // Set active template
+        async function setActiveTemplate() {
+            if (!currentEditingTemplate) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/reasoning_templates/active', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        template_name: currentEditingTemplate.name
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showStatusMessage(data.message, true);
+                    activeTemplate = currentEditingTemplate.name;
+                    await loadTemplates();
+                    await loadTemplate(currentEditingTemplate.name);
+                } else {
+                    showStatusMessage(`Error: ${data.error}`, false);
+                }
+            } catch (error) {
+                showStatusMessage(`Failed to set active template: ${error.message}`, false);
+            }
+        }
+        
+        // Delete template
+        async function deleteTemplate() {
+            if (!currentEditingTemplate) {
+                return;
+            }
+            
+            if (!confirm(`Are you sure you want to delete the template "${currentEditingTemplate.name}"?`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/reasoning_templates/${currentEditingTemplate.name}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showStatusMessage(data.message, true);
+                    
+                    // Clear editor
+                    currentEditingTemplate = null;
+                    editorTitle.textContent = 'Template Editor';
+                    templateInfo.innerHTML = '';
+                    templateContent.value = '';
+                    saveBtn.disabled = true;
+                    setActiveBtn.disabled = true;
+                    deleteBtn.disabled = true;
+                    
+                    // Reload templates
+                    await loadTemplates();
+                } else {
+                    showStatusMessage(`Error: ${data.error}`, false);
+                }
+            } catch (error) {
+                showStatusMessage(`Failed to delete template: ${error.message}`, false);
+            }
+        }
+        
+        // Create new template
+        function createNewTemplate() {
+            const defaultTemplate = {
+                name: "New Template",
+                description: "A new reasoning template",
+                version: "1.0.0",
+                author: "User",
+                system_prompt: "You are a Socratic reasoning assistant. Guide the user through critical thinking by asking questions rather than providing direct answers.",
+                prompt_templates: {
+                    document_analysis: "Analyze the following document using Socratic methods: {{DOCUMENT_CONTENT}}"
+                },
+                reasoning_paradigms: {
+                    "conceptual_chaining": {
+                        "description": "Connects concepts through logical relationships"
+                    }
+                }
+            };
+            
+            currentEditingTemplate = defaultTemplate;
+            editorTitle.textContent = 'Creating New Template';
+            
+            templateInfo.innerHTML = `
+                <p><strong>Description:</strong> New template</p>
+                <p><strong>Version:</strong> 1.0.0</p>
+                <p><strong>Author:</strong> User</p>
+                <p><strong>Status:</strong> Draft</p>
+            `;
+            
+            templateContent.value = JSON.stringify(defaultTemplate, null, 2);
+            
+            saveBtn.disabled = false;
+            setActiveBtn.disabled = true;
+            deleteBtn.disabled = true;
+            
+            // Deselect all templates
+            document.querySelectorAll('.template-item').forEach(item => {
+                item.classList.remove('active');
+            });
+        }
+        
+        // Show status message
+        function showStatusMessage(message, isSuccess) {
+            statusMessage.textContent = message;
+            statusMessage.className = isSuccess ? 'status-message status-success' : 'status-message status-error';
+            statusMessage.style.display = 'block';
+            
+            // Hide after 5 seconds
+            setTimeout(() => {
+                statusMessage.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Event listeners
+        saveBtn.addEventListener('click', saveTemplate);
+        setActiveBtn.addEventListener('click', setActiveTemplate);
+        deleteBtn.addEventListener('click', deleteTemplate);
+        newTemplateBtn.addEventListener('click', createNewTemplate);
+        
+        // Initial load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTemplates();
+            
+            // Disable buttons initially
+            saveBtn.disabled = true;
+            setActiveBtn.disabled = true;
+            deleteBtn.disabled = true;
+        });
+    </script>
+</body>
+</html>

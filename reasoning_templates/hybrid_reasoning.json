@@ -1,0 +1,149 @@
+{
+  "name": "Hybrid Symbolic-Neural Socratic Reasoning",
+  "description": "An advanced template implementing the hybrid approach to Socratic reasoning that combines symbolic logic structures with neural language understanding",
+  "version": "1.0.0",
+  "author": "angrysky56",
+  "framework": {
+    "symbolic_layer": {
+      "description": "Formal logical structures that guide the reasoning process",
+      "components": {
+        "logical_operators": {
+          "conjunction": "∧",
+          "disjunction": "∨",
+          "negation": "¬",
+          "implication": "→",
+          "equivalence": "↔"
+        },
+        "quantifiers": {
+          "universal": "∀",
+          "existential": "∃"
+        },
+        "proof_structures": {
+          "direct_proof": "p → r₁ → r₂ → ... → rₙ → q",
+          "proof_by_contradiction": "p ∧ ¬q → contradiction → ¬(p ∧ ¬q) → (p → q)",
+          "proof_by_cases": "((p → q) ∧ (r → q)) → ((p ∨ r) → q)"
+        }
+      }
+    },
+    "neural_layer": {
+      "description": "Dynamic, adaptive reasoning components powered by language models",
+      "functions": [
+        {
+          "name": "semantic_relevance",
+          "description": "Determines how closely a proposed logical step aligns with the overall argument",
+          "implementation": "Computes semantic similarity between current reasoning step and overall context"
+        },
+        {
+          "name": "logical_step_generation",
+          "description": "Generates potential next steps in the reasoning process",
+          "implementation": "Proposes multiple candidate steps (r_i) based on current state and goal"
+        },
+        {
+          "name": "user_response_interpretation",
+          "description": "Analyzes user responses for agreement, confusion, insights, and implicit assumptions",
+          "implementation": "Extracts semantic meaning and sentiment from user responses to adapt reasoning strategy"
+        },
+        {
+          "name": "natural_language_formulation",
+          "description": "Converts formal logical structures into natural, conversational language",
+          "implementation": "Translates symbolic representations into contextually appropriate questions and prompts"
+        }
+      ]
+    },
+    "adaptive_strategies": {
+      "description": "Methods for dynamically adjusting the reasoning process based on user interaction",
+      "strategies": [
+        {
+          "name": "path_selection",
+          "description": "Chooses the most promising reasoning path when multiple options exist",
+          "criteria": ["user_engagement", "progress_toward_goal", "logical_coherence", "depth_of_insight"]
+        },
+        {
+          "name": "branching_exploration",
+          "description": "Maintains multiple potential reasoning paths simultaneously",
+          "implementation": "Uses a tree structure to track different lines of inquiry and their current states"
+        },
+        {
+          "name": "backtracking",
+          "description": "Returns to earlier points in the reasoning when a path becomes unproductive",
+          "trigger_conditions": ["repeated_confusion", "logical_dead_end", "circular_reasoning", "user_redirection"]
+        },
+        {
+          "name": "meta_reflection",
+          "description": "Pauses to evaluate and adjust the overall reasoning strategy",
+          "frequency": "Every 4-5 exchanges or when progress stalls"
+        }
+      ]
+    }
+  },
+  "prompt_templates": {
+    "system_prompt": "You are an advanced Socratic reasoning system that implements a hybrid symbolic-neural approach. You combine the rigor of formal logic with the flexibility and adaptability of natural language understanding. Your goal is to guide the user through a process of discovery and insight by asking thoughtful questions rather than providing direct answers. Maintain a balance between logical structure and conversational flow, adapting your approach based on the user's responses.",
+    
+    "initialization": "I'll help you explore this topic using a Socratic approach that combines formal logic with natural dialogue. Rather than simply providing answers, I'll ask questions that help you examine the underlying assumptions and implications of the ideas we're discussing. Feel free to question my questions as well - the goal is collaborative discovery.",
+    
+    "direct_proof_template": "Let's explore the implications of your statement \"{{p}}\". If we accept this as true:\n\n1. Would it follow that {{r₁}}?\n2. And if {{r₁}} is true, would that suggest {{r₂}}?\n3. Taking this further, would {{r₂}} imply {{r₃}}?\n\nIf these steps are valid, we'd reach the conclusion that {{q}}. Does this progression make sense to you? Are there any steps that seem questionable?",
+    
+    "contradiction_template": "Let's try a different approach by examining what would happen if we assume both \"{{p}}\" and \"not {{q}}\" are true simultaneously.\n\n1. If {{p}} is true, then {{r₁}} would follow.\n2. But if not {{q}} is true, then {{r₂}} must also be true.\n3. However, {{r₁}} and {{r₂}} cannot both be true because {{explanation}}.\n\nThis suggests there's a contradiction in assuming both {{p}} and not {{q}}. What might this tell us about the relationship between {{p}} and {{q}}?",
+    
+    "concept_clarification": "I notice we're using the term \"{{term}}\" in our discussion. To ensure we're on the same page, could you clarify what you mean by this term in this context? Different interpretations might lead us to different conclusions.",
+    
+    "assumption_identification": "Your reasoning seems to presuppose that {{assumption}}. This isn't necessarily incorrect, but I'm curious - is this something you're taking as given? What justifies this presupposition?",
+    
+    "meta_reasoning": "Let's take a moment to reflect on our discussion so far. We started with {{starting_point}} and have explored {{explored_paths}}. Does this line of inquiry feel productive to you? Are there aspects of the topic we haven't addressed that you'd like to explore?"
+  },
+  "reasoning_paradigms": {
+    "conceptual_chaining": {
+      "description": "Connects abstract concepts through their logical relationships",
+      "suitable_for": ["philosophical inquiries", "ethical discussions", "conceptual analysis"],
+      "question_style": "Open-ended, explorative questions that probe conceptual connections"
+    },
+    "chunked_symbolism": {
+      "description": "Breaks down complex logical statements into discrete, manageable steps",
+      "suitable_for": ["mathematical reasoning", "formal logic problems", "algorithmic thinking"],
+      "question_style": "Precise, structured questions focused on specific logical steps"
+    },
+    "expert_lexicons": {
+      "description": "Uses domain-specific terminology and frameworks",
+      "suitable_for": ["specialized fields", "technical discussions", "professional contexts"],
+      "question_style": "Questions that employ field-specific terminology with precision"
+    }
+  },
+  "implementation_notes": {
+    "technical_components": [
+      {
+        "component": "Knowledge Graph Integration",
+        "description": "Maintain a structured representation of concepts, definitions, logical rules, and their relationships to guide question generation"
+      },
+      {
+        "component": "Multi-Path Tracking",
+        "description": "Use a tree-like data structure to maintain multiple possible reasoning paths simultaneously"
+      },
+      {
+        "component": "Response Analysis Module",
+        "description": "Analyze user responses for confusion, insight, agreement, and new assumptions"
+      },
+      {
+        "component": "Paradigm Selection Mechanism",
+        "description": "Dynamically choose between conceptual_chaining, chunked_symbolism, and expert_lexicons based on topic and user responses"
+      }
+    ],
+    "challenge_handling": [
+      {
+        "challenge": "Maintaining Coherence",
+        "solution": "Regularly summarize the current state of the reasoning process and confirm understanding"
+      },
+      {
+        "challenge": "Avoiding Circular Reasoning",
+        "solution": "Track premises and conclusions to detect when reasoning returns to previously established points"
+      },
+      {
+        "challenge": "Balancing Structure and Naturalness",
+        "solution": "Use formal structure internally but present questions in conversational, accessible language"
+      },
+      {
+        "challenge": "Handling Unpredictable User Responses",
+        "solution": "Implement flexible parsing that extracts key information even from tangential responses"
+      }
+    ]
+  }
+}

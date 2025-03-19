@@ -30,6 +30,24 @@ except ImportError:
     MULTIMODAL_ROUTES_AVAILABLE = False
     logger.warning("Multimodal routes not available")
 
+# Import our fixed direct_integration for document analysis
+try:
+    from web_interface.direct_integration_fixed import fixed_direct_analyze_text
+    FIXED_INTEGRATION_AVAILABLE = True
+    logger.info("Fixed direct integration for RAG available")
+except ImportError:
+    FIXED_INTEGRATION_AVAILABLE = False
+    logger.warning("Fixed direct integration not available")
+
+# Import reasoning templates routes
+try:
+    from web_interface.reasoning_templates_routes import reasoning_templates_bp
+    REASONING_TEMPLATES_ROUTES_AVAILABLE = True
+    logger.info("Reasoning templates routes available")
+except ImportError:
+    REASONING_TEMPLATES_ROUTES_AVAILABLE = False
+    logger.warning("Reasoning templates routes not available")
+
 # Import enhanced routes
 try:
     from web_interface.enhanced_routes import enhanced_bp
@@ -186,7 +204,7 @@ logger.info("Document RAG routes registered")
 
 # Register the enhanced routes blueprint
 # Register enhanced routes if not registered already
-if 'enhanced' not in app.blueprints:
+if 'enhanced' not in app.blueprints and ENHANCED_ROUTES_AVAILABLE:
     app.register_blueprint(enhanced_bp)
     logger.info("Enhanced routes registered")
 else:
@@ -206,242 +224,39 @@ if SETTINGS_ROUTES_AVAILABLE:
     app.register_blueprint(settings_bp)
     logger.info("Settings routes registered")
 
+# Register the reasoning templates routes blueprint
+if REASONING_TEMPLATES_ROUTES_AVAILABLE:
+    app.register_blueprint(reasoning_templates_bp)
+    logger.info("Reasoning templates routes registered")
+
 # Register the integrated blueprint if available
 if INTEGRATED_ROUTES_AVAILABLE:
     app.register_blueprint(integrated_bp)
     logger.info("Integrated routes registered")
 
-# Redirect root to integrated UI
+# Routes
 @app.route('/', methods=['GET'])
 def index():
-    """Redirect to integrated UI if available, otherwise redirect to enhanced UI."""
-    return redirect('/integrated')
+    """Redirect to the unified Socratic UI."""
+    return redirect('/socratic')
 
-# Special integrated UI path that avoids duplicate navbar
-@app.route('/integrated_lite', methods=['GET'])
-def integrated_lite():
-    """Render the integrated-ui.html file directly without using base template."""
-    try:
-        # Use direct file path to integrated-ui.html instead of template
-        with open(os.path.join(os.path.dirname(__file__), 'integrated-ui.html'), 'r') as f:
-            content = f.read()
-            return content
-    except Exception as e:
-        logger.error(f"Error loading integrated-ui.html: {e}")
-        return redirect('/integrated')
-
-@app.route('/integrated', methods=['GET'])
-def integrated_ui():
-    """Render the integrated UI page with fixed navbar."""
-    # Get current patterns from detectors for settings page
-    vague_patterns = []
-    gender_bias_patterns = []
-    stereotype_patterns = []
-    non_inclusive_patterns = []
-    
-    # Try to load from custom patterns first
-    custom_patterns = load_custom_patterns()
-    
-    # Use custom patterns if available, otherwise get from detectors
-    if custom_patterns['vague']:
-        vague_patterns = custom_patterns['vague']
-    elif 'ambiguity' in clarifier.detectors:
-        vague_patterns = clarifier.detectors['ambiguity'].vague_terms
-    
-    if custom_patterns['gender_bias']:
-        gender_bias_patterns = custom_patterns['gender_bias']
-    elif 'bias' in clarifier.detectors:
-        gender_bias_patterns = clarifier.detectors['bias'].gender_bias
-    
-    if custom_patterns['stereotype']:
-        stereotype_patterns = custom_patterns['stereotype']
-    elif 'bias' in clarifier.detectors:
-        stereotype_patterns = clarifier.detectors['bias'].stereotypes
-    
-    if custom_patterns['non_inclusive']:
-        non_inclusive_patterns = custom_patterns['non_inclusive']
-    elif 'bias' in clarifier.detectors:
-        non_inclusive_patterns = clarifier.detectors['bias'].non_inclusive
-    
-    # Get current model information
-    current_model = config.get('integrations', {}).get('ollama', {}).get('default_model', 'gemma3:latest')
-    
-    return render_template(
-        'integrated_ui.html', 
-        modes=clarifier.available_modes(),
-        vague_patterns=vague_patterns,
-        gender_bias_patterns=gender_bias_patterns,
-        stereotype_patterns=stereotype_patterns,
-        non_inclusive_patterns=non_inclusive_patterns,
-        current_model=current_model,
-        show_navbar=False  # This flag will control whether to show the navbar
-    )
-
-@app.route('/chat', methods=['POST'])
-def chat_message():
-    """Process a chat message and return a response."""
-    try:
-        # Get the data from the request
-        data = request.get_json()
-        message = data.get('message', '')
-        mode = data.get('mode', 'standard')
-        use_sot = data.get('use_sot', True)
-        use_rag = data.get('use_rag', False)
-        document_context = data.get('document_context', [])
-        
-        logger.info(f"Received message: '{message}' with mode: {mode}, use_sot: {use_sot}, use_rag: {use_rag}")
-        
-        # If RAG is enabled, retrieve relevant document context
-        rag_context = []
-        if use_rag and config.get('settings', {}).get('use_document_rag', False):
-            try:
-                # Include provided document context
-                rag_context = document_context
-                
-                # If no specific documents were provided, search for relevant context
-                if not rag_context and message:
-                    from web_interface.document_rag_routes import retrieve_relevant_context
-                    results = retrieve_relevant_context(message, limit=3)
-                    if results:
-                        rag_context = [
-                            {
-                                "document_id": result.get("document_id"),
-                                "filename": result.get("filename"),
-                                "content": result.get("content"),
-                                "relevance": result.get("relevance", 0.0)
-                            }
-                            for result in results
-                        ]
-                        logger.info(f"Retrieved {len(rag_context)} relevant document chunks for RAG")
-            except Exception as rag_error:
-                logger.error(f"Error retrieving RAG context: {rag_error}")
-        
-        # Use direct integration to analyze the text
-        result = direct_integration.direct_analyze_text(
-            message, 
-            mode, 
-            use_sot, 
-            document_context=rag_context
-        )
-        
-        # Generate a response based on the analysis
-        if result['issues'] and result['questions']:
-            # Craft a response that includes one of the Socratic questions
-            reply = f"I've analyzed your statement and have some thoughts to share. {result['questions'][0]}"
-            
-            # If there are more questions, include a followup
-            if len(result['questions']) > 1:
-                reply += f" I also wonder: {result['questions'][1]}"
-                
-            # If we used document context, mention that
-            if rag_context:
-                reply += f"\n\n(Analysis included context from {len(rag_context)} document(s))"
-        else:
-            # Default response if no issues detected
-            reply = "I've considered your statement. It seems clear and well-formed. Do you have any other thoughts you'd like to explore?"
-        
-        # Prepare the response data
-        response = {
-            'reply': reply,
-            'text': message,
-            'issues': result['issues'],
-            'questions': result['questions'],
-            'reasoning': result['reasoning'],
-            'sot_paradigm': result['sot_paradigm'],
-            'confidence': result['confidence'],
-            'sot_enabled': result['sot_enabled'],
-            'model': result['model'],
-            'provider': result['provider'],
-            'document_context': rag_context
-        }
-        
-        return jsonify(response)
-    except Exception as e:
-        error_traceback = traceback.format_exc()
-        logger.error(f"Error processing chat message: {e}\n{error_traceback}")
-        return jsonify({'error': str(e), 'traceback': error_traceback}), 500
-
-# Settings page route
-@app.route('/settings', methods=['GET'])
-def settings():
-    """Render the settings page."""
-    # Get current patterns from detectors
-    vague_patterns = []
-    gender_bias_patterns = []
-    stereotype_patterns = []
-    non_inclusive_patterns = []
-    
-    # Try to load from custom patterns first
-    custom_patterns = load_custom_patterns()
-    
-    # Use custom patterns if available, otherwise get from detectors
-    if custom_patterns['vague']:
-        vague_patterns = custom_patterns['vague']
-    elif 'ambiguity' in clarifier.detectors:
-        vague_patterns = clarifier.detectors['ambiguity'].vague_terms
-    
-    if custom_patterns['gender_bias']:
-        gender_bias_patterns = custom_patterns['gender_bias']
-    elif 'bias' in clarifier.detectors:
-        gender_bias_patterns = clarifier.detectors['bias'].gender_bias
-    
-    if custom_patterns['stereotype']:
-        stereotype_patterns = custom_patterns['stereotype']
-    elif 'bias' in clarifier.detectors:
-        stereotype_patterns = clarifier.detectors['bias'].stereotypes
-    
-    if custom_patterns['non_inclusive']:
-        non_inclusive_patterns = custom_patterns['non_inclusive']
-    elif 'bias' in clarifier.detectors:
-        non_inclusive_patterns = clarifier.detectors['bias'].non_inclusive
-    
-    # Get model settings from config
-    ollama_model = config.get('integrations', {}).get('ollama', {}).get('default_model', 'llama3')
-    ollama_embedding_model = config.get('integrations', {}).get('ollama', {}).get('default_embedding_model', 'nomic-embed-text')
-    lm_studio_model = config.get('integrations', {}).get('lm_studio', {}).get('default_model', 'default')
-    
-    # Get system prompts
-    question_prompt = """
-You are an expert at creating Socratic questions to help improve communication clarity and reduce bias.
-Based on the text and detected issues, generate thought-provoking questions that will help the author clarify their meaning, 
-consider potential biases, and strengthen their reasoning.
-
-Focus on questions that:
-- Ask for clarification of ambiguous terms
-- Challenge biased assumptions
-- Request evidence for unsupported claims
-- Identify logical inconsistencies
-- Encourage deeper reflection
-
-Your questions should be specific to the issues detected and should help improve the text.
-"""
-    
-    reasoning_prompt = """
-You are an expert at creating structured reasoning in the {paradigm} format.
-Analyze the text and issues to create a concise reasoning diagram.
-
-Use the following format for your response:
-
-<think>
-# Your structured reasoning here
-</think>
-"""
-    
-    return render_template(
-        'settings.html',
-        modes=clarifier.available_modes(),
-        vague_patterns=vague_patterns,
-        gender_bias_patterns=gender_bias_patterns,
-        stereotype_patterns=stereotype_patterns,
-        non_inclusive_patterns=non_inclusive_patterns,
-        ollama_model=ollama_model,
-        ollama_embedding_model=ollama_embedding_model,
-        lm_studio_model=lm_studio_model,
-        question_prompt=question_prompt,
-        reasoning_prompt=reasoning_prompt,
-        use_document_rag=config.get('settings', {}).get('use_document_rag', True),
-        show_navbar=True  # Keep navbar on settings page
-    )
+@app.route('/socratic')
+def socratic_ui():
+    """
+    Unified Socratic UI with tabs for all functionality.
+    """
+    return render_template('socratic_ui.html')
+                    
+# Redirect old routes to the unified UI
+@app.route('/integrated')
+@app.route('/integrated_lite')
+@app.route('/enhanced')
+@app.route('/reflection')
+def redirect_to_socratic():
+    """
+    Redirect old UI routes to the unified Socratic UI.
+    """
+    return redirect('/socratic')
 
 # Text analysis endpoint
 @app.route('/analyze', methods=['POST'])
@@ -483,13 +298,31 @@ def analyze():
             except Exception as rag_error:
                 logger.error(f"Error retrieving RAG context: {rag_error}")
         
-        # Use direct integration to analyze the text
-        result = direct_integration.direct_analyze_text(
-            text, 
-            mode, 
-            use_sot, 
-            document_context=rag_context
-        )
+        # Use fixed integration for document RAG if available
+        if FIXED_INTEGRATION_AVAILABLE and rag_context:
+            logger.info("Using fixed direct integration for document analysis")
+            result = fixed_direct_analyze_text(
+                text, 
+                mode, 
+                use_sot, 
+                document_context=rag_context
+            )
+        else:
+            # Fall back to regular direct integration
+            try:
+                result = direct_integration.direct_analyze_text(
+                    text, 
+                    mode, 
+                    use_sot, 
+                    document_context=rag_context
+                )
+            except TypeError as e:
+                # Handle old version of direct_analyze_text without document_context param
+                logger.warning(f"direct_analyze_text may have an incompatible signature: {e}")
+                result = direct_integration.direct_analyze_text(text, mode, use_sot)
+                # Add document context to the result manually if needed
+                if rag_context:
+                    result["document_context"] = rag_context
         
         # Prepare the response
         response = {
@@ -508,6 +341,109 @@ def analyze():
     except Exception as e:
         error_traceback = traceback.format_exc()
         logger.error(f"Error analyzing text: {e}\n{error_traceback}")
+        return jsonify({'error': str(e), 'traceback': error_traceback}), 500
+
+# Chat message endpoint
+@app.route('/chat', methods=['POST'])
+def chat_message():
+    """Process a chat message and return a response."""
+    try:
+        # Get the data from the request
+        data = request.get_json()
+        message = data.get('message', '')
+        mode = data.get('mode', 'standard')
+        use_sot = data.get('use_sot', True)
+        use_rag = data.get('use_rag', False)
+        document_context = data.get('document_context', [])
+        
+        logger.info(f"Received message: '{message}' with mode: {mode}, use_sot: {use_sot}, use_rag: {use_rag}")
+        
+        # If RAG is enabled, retrieve relevant document context
+        rag_context = []
+        if use_rag and config.get('settings', {}).get('use_document_rag', False):
+            try:
+                # Include provided document context
+                rag_context = document_context
+                
+                # If no specific documents were provided, search for relevant context
+                if not rag_context and message:
+                    from web_interface.document_rag_routes import retrieve_relevant_context
+                    results = retrieve_relevant_context(message, limit=3)
+                    if results:
+                        rag_context = [
+                            {
+                                "document_id": result.get("document_id"),
+                                "filename": result.get("filename"),
+                                "content": result.get("content"),
+                                "relevance": result.get("relevance", 0.0)
+                            }
+                            for result in results
+                        ]
+                        logger.info(f"Retrieved {len(rag_context)} relevant document chunks for RAG")
+            except Exception as rag_error:
+                logger.error(f"Error retrieving RAG context: {rag_error}")
+        
+        # Use fixed integration for document RAG if available
+        if FIXED_INTEGRATION_AVAILABLE and rag_context:
+            logger.info("Using fixed direct integration for document analysis")
+            result = fixed_direct_analyze_text(
+                message, 
+                mode, 
+                use_sot, 
+                document_context=rag_context
+            )
+        else:
+            # Fall back to regular direct integration
+            try:
+                result = direct_integration.direct_analyze_text(
+                    message, 
+                    mode, 
+                    use_sot, 
+                    document_context=rag_context
+                )
+            except TypeError as e:
+                # Handle old version of direct_analyze_text without document_context param
+                logger.warning(f"direct_analyze_text may have an incompatible signature: {e}")
+                result = direct_integration.direct_analyze_text(message, mode, use_sot)
+                # Add document context to the result manually if needed
+                if rag_context:
+                    result["document_context"] = rag_context
+        
+        # Generate a response based on the analysis
+        if result['issues'] and result['questions']:
+            # Craft a response that includes one of the Socratic questions
+            reply = f"I've analyzed your statement and have some thoughts to share. {result['questions'][0]}"
+            
+            # If there are more questions, include a followup
+            if len(result['questions']) > 1:
+                reply += f" I also wonder: {result['questions'][1]}"
+                
+            # If we used document context, mention that
+            if rag_context:
+                reply += f"\n\n(Analysis included context from {len(rag_context)} document(s))"
+        else:
+            # Default response if no issues detected
+            reply = "I've considered your statement. It seems clear and well-formed. Do you have any other thoughts you'd like to explore?"
+        
+        # Prepare the response data
+        response = {
+            'reply': reply,
+            'text': message,
+            'issues': result['issues'],
+            'questions': result['questions'],
+            'reasoning': result['reasoning'],
+            'sot_paradigm': result['sot_paradigm'],
+            'confidence': result['confidence'],
+            'sot_enabled': result['sot_enabled'],
+            'model': result['model'],
+            'provider': result['provider'],
+            'document_context': rag_context
+        }
+        
+        return jsonify(response)
+    except Exception as e:
+        error_traceback = traceback.format_exc()
+        logger.error(f"Error processing chat message: {e}\n{error_traceback}")
         return jsonify({'error': str(e), 'traceback': error_traceback}), 500
 
 # Feedback endpoint
@@ -633,6 +569,54 @@ def save_detector_settings():
         })
     except Exception as e:
         logger.error(f"Error saving detector settings: {e}\n{traceback.format_exc()}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+# API endpoint for saving socratic reasoning settings
+@app.route('/api/settings/socratic', methods=['POST'])
+def save_socratic_settings():
+    """Save socratic reasoning settings to the config file."""
+    try:
+        data = request.get_json()
+        socratic_settings = data.get('socratic_reasoning', {})
+        
+        # Load current config
+        config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'config.json'))
+        with open(config_path, 'r') as f:
+            config = json.load(f)
+        
+        # Update socratic reasoning settings
+        if 'settings' not in config:
+            config['settings'] = {}
+            
+        if 'socratic_reasoning' not in config['settings']:
+            config['settings']['socratic_reasoning'] = {}
+            
+        # Update individual settings
+        if 'enabled' in socratic_settings:
+            config['settings']['socratic_reasoning']['enabled'] = socratic_settings['enabled']
+            
+        if 'reasoning_depth' in socratic_settings:
+            config['settings']['socratic_reasoning']['reasoning_depth'] = socratic_settings['reasoning_depth']
+            
+        if 'system_prompt' in socratic_settings:
+            config['settings']['socratic_reasoning']['system_prompt'] = socratic_settings['system_prompt']
+        
+        # Write updated config
+        with open(config_path, 'w') as f:
+            json.dump(config, f, indent=4)
+        
+        # Update the app config
+        app.config['CLARIFIER_CONFIG'] = config
+        
+        return jsonify({
+            'success': True,
+            'message': 'Socratic reasoning settings saved successfully'
+        })
+    except Exception as e:
+        logger.error(f"Error saving socratic reasoning settings: {e}\n{traceback.format_exc()}")
         return jsonify({
             'success': False,
             'error': str(e)

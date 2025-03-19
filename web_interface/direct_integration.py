@@ -134,21 +134,58 @@ def generate_socratic_questions(text, issues, sot_paradigm=None, max_questions=5
             # Fall back to standard generation
     
     # Standard Ollama generation as fallback
-    # Create a system prompt for the LLM
-    system_prompt = f"""
-    You are a master of Socratic questioning who helps people improve their critical thinking.
+    # Get custom system prompt from config if available
+    config_path = os.path.join(os.path.dirname(__file__), '..', 'config.json')
+    custom_prompt = None
     
-    Your purpose is to craft precise, thoughtful questions that identify potential issues in people's statements.
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, 'r') as f:
+                config = json.load(f)
+                if config.get('settings', {}).get('socratic_reasoning', {}).get('system_prompt'):
+                    custom_prompt = config['settings']['socratic_reasoning']['system_prompt']
+        except:
+            pass
     
-    Based on the text and specific issues detected, create {max_questions} thought-provoking questions that will:
-    - Encourage the person to recognize their own assumptions
-    - Help them examine whether generalizations account for exceptions
-    - Prompt consideration of evidence for claims made
-    - Lead them to clarify vague or imprecise language
-    - Guide reflection on normative statements that impose values
+    # Create a system prompt for the LLM - use custom if available, otherwise default
+    if custom_prompt:
+        system_prompt = custom_prompt
+    else:
+        system_prompt = f"""
+    You are an expert at identifying issues in statements that could benefit from Socratic questioning.
     
-    Make each question genuinely useful for deepening understanding, not rhetorical.  
-    Each question should directly address a specific issue identified in the text.
+    {document_text if document_context else f'Please analyze this text: "{text}"'}
+    
+    {'If no document context is provided, analyze the user query. If document context is provided, analyze the document content in relation to the user query. The user query is: "' + text + '"' if document_context else ''}
+    
+    INSTRUCTIONS:
+    - If the statement contains any of the following issues, you MUST identify them:
+      * Absolute terms like 'everyone', 'always', 'never', 'all', 'none'
+      * Vague or imprecise language that lacks clear definition
+      * Claims made without evidence 
+      * Generalizations that don't account for exceptions
+      * Language that assumes universal applicability 
+      * Normative statements that impose values without qualification
+    
+    - For the specific example "Everyone should own a dog", you would definitely identify:
+      * "Everyone" as an absolute term that fails to account for people with allergies, 
+        housing restrictions, or different preferences
+      * "should" as a normative claim that imposes values without acknowledging cultural 
+        or personal differences
+    
+    YOUR RESPONSE MUST BE VALID JSON WITH NO TEXT BEFORE OR AFTER IT. USE THIS EXACT STRUCTURE:
+    
+    {{"issues":[{{"term":"word-here","issue":"label-here","description":"explanation-here","confidence":0.95}}]}}
+    
+    Important JSON formatting rules:
+    1. Use double quotes (") for all strings and keys
+    2. Do not use single quotes (')
+    3. Do not include trailing commas
+    4. Use a decimal between 0 and 1 for confidence (e.g., 0.8)
+    5. Ensure all curly braces and square brackets match correctly
+    6. Return ONLY the JSON with no text before or after
+    
+    If there are no issues, return {{"issues":[]}} with an empty array.
     """
     
     # Create context from the text and issues
@@ -217,10 +254,49 @@ def direct_analyze_text(text, mode="standard", use_sot=True, max_questions=5, do
         mode (str, optional): Analysis mode (standard or reflective)
         use_sot (bool, optional): Whether to use SOT if available
         max_questions (int, optional): Maximum number of questions to generate
+        document_context (list, optional): List of document contexts to use
         
     Returns:
         dict: Analysis results
     """
+    # Check if Socratic reasoning is enabled in config
+    config_path = os.path.join(os.path.dirname(__file__), '..', 'config.json')
+    socratic_enabled = True  # Default to enabled
+    
+    # Try to load config
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, 'r') as f:
+                config = json.load(f)
+                # Check if socratic reasoning is explicitly disabled
+                if 'settings' in config and 'socratic_reasoning' in config['settings']:
+                    socratic_enabled = config['settings']['socratic_reasoning'].get('enabled', True)
+                    
+                # Override mode if reasoning_depth is specified and mode is default
+                if mode == "standard" and 'settings' in config and 'socratic_reasoning' in config['settings']:
+                    reasoning_depth = config['settings']['socratic_reasoning'].get('reasoning_depth')
+                    if reasoning_depth in ["standard", "deep", "technical", "creative"]:
+                        mode = reasoning_depth
+                        logger.info(f"Using reasoning depth '{mode}' from config")
+        except Exception as e:
+            logger.error(f"Error loading config to check Socratic reasoning: {e}")
+    
+    # If Socratic reasoning is disabled, return minimal results
+    if not socratic_enabled:
+        logger.info("Socratic reasoning is disabled in config")
+        return {
+            "text": text,
+            "issues": [],
+            "questions": [],
+            "reasoning": None,
+            "sot_paradigm": None,
+            "confidence": 0.0,
+            "sot_enabled": False,
+            "model": "disabled",
+            "provider": "none",
+            "reflective_ecosystem_used": False,
+            "max_questions": 0
+        }
     # Initialize document_context if not provided
     if document_context is None:
         document_context = []
@@ -229,18 +305,32 @@ def direct_analyze_text(text, mode="standard", use_sot=True, max_questions=5, do
     document_text = ""
     if document_context:
         logger.info(f"Processing document context with {len(document_context)} documents")
-        for doc in document_context:
+        # Basic document integration - include document content for proper analysis
+        document_text = f"USER QUERY: {text}\n\n"
+        document_text += "DOCUMENT CONTENT TO ANALYZE:\n"
+        
+        for i, doc in enumerate(document_context):
             if isinstance(doc, dict) and "content" in doc:
-                # Add document content to analysis context
                 content = doc.get("content", "")
+                filename = doc.get("filename", f"Document {i+1}")
+                
                 if content:
-                    document_text += f"\n\nDocument content: {content[:500]}..."
+                    document_text += f"\n----- DOCUMENT {i+1}: {filename} -----\n"
+                    document_text += f"{content}\n"
+        
+        # Add better analysis instructions
+        document_text += "\n\nINSTRUCTIONS FOR ANALYSIS:\n"
+        document_text += "1. Analyze the DOCUMENT CONTENT above in relation to the USER QUERY.\n"
+        document_text += "2. Identify issues in the document content, not in the user's query.\n"
+        document_text += "3. Focus on analyzing the actual document text rather than the query itself.\n"
 
     # Use Ollama to detect issues
     prompt = f"""
     You are an expert at identifying issues in statements that could benefit from Socratic questioning.
     
-    Please analyze this text: "{text}"{document_text}
+    {document_text if document_context else f'Please analyze this text: "{text}"'}
+    
+    {'' if not document_context else f'The user query is: "{text}". Focus on analyzing the document content, not the query.'}
     
     INSTRUCTIONS:
     - If the statement contains any of the following issues, you MUST identify them:

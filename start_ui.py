@@ -159,14 +159,8 @@ def main():
         logger.info("\n" + "*" * 60)
         logger.info("*  AI-Socratic-Clarifier Web Interface                   *")
         logger.info("*  " + " " * 54 + " *")
-        if args.lite:
-            logger.info(f"*  Web interface: http://{args.host if args.host != '0.0.0.0' else 'localhost'}:{args.port}/integrated_lite  *")
-        else:
-            logger.info(f"*  Web interface: http://{args.host if args.host != '0.0.0.0' else 'localhost'}:{args.port}  *")
-        logger.info("*  Integrated UI: /integrated                            *")
-        logger.info("*  Integrated UI (Lite): /integrated_lite                *")
-        logger.info("*  Enhanced UI: /enhanced                                *")
-        logger.info("*  Reflective mode: /reflection                          *")
+        logger.info(f"*  Web interface: http://{args.host if args.host != '0.0.0.0' else 'localhost'}:{args.port}  *")
+        logger.info("*  Socratic UI: /socratic                                *")
         if args.debug:
             logger.info("*  RUNNING IN DEBUG MODE                                 *")
         logger.info("*" * 60 + "\n")

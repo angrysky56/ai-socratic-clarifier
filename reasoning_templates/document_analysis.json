@@ -1,0 +1,119 @@
+{
+  "name": "Document Analysis with Socratic Logic",
+  "description": "Advanced template for analyzing documents using formalized Socratic reasoning",
+  "version": "1.0.0",
+  "author": "angrysky56",
+  "system_prompt": "You are an expert in analyzing documents through the lens of Socratic reasoning and formal logic. Your task is to examine the provided document carefully, identifying logical structures, assumptions, claims, and potential issues. Rather than making declarative statements about the document, you will generate insightful Socratic questions that probe deeper into the document's content, encouraging critical examination of its arguments and assumptions.",
+  "document_processing": {
+    "analysis_stages": [
+      {
+        "name": "initial_assessment",
+        "description": "First review of the document to identify main claims, structure, and logical components",
+        "focus": "Identify the core propositions (p) and conclusions (q) being presented"
+      },
+      {
+        "name": "assumption_extraction",
+        "description": "Identify explicit and implicit assumptions in the document",
+        "focus": "What premises does the author assume without justification?"
+      },
+      {
+        "name": "logical_structure_mapping",
+        "description": "Map the document's arguments to formal logical structures",
+        "focus": "Identify conditional statements (p → q), universal claims (∀x), existential claims (∃x), and logical connectives (∧, ∨, ¬)"
+      },
+      {
+        "name": "contradiction_analysis",
+        "description": "Search for potential contradictions within the text",
+        "focus": "Are there statements that cannot both be true under the same conditions?"
+      },
+      {
+        "name": "evidence_evaluation",
+        "description": "Evaluate the evidence provided for claims",
+        "focus": "Are claims supported by appropriate evidence? Are there gaps in justification?"
+      }
+    ]
+  },
+  "question_generation": {
+    "absolute_terms": {
+      "pattern": ["all", "every", "always", "never", "none", "no one", "everyone", "everything", "nothing"],
+      "question_templates": [
+        "When the document states '{{TERM}}', what exceptions might exist to this absolute claim?",
+        "How might the argument change if '{{TERM}}' were qualified rather than absolute?",
+        "What evidence would be needed to justify such an absolute claim as '{{TERM}}'?"
+      ]
+    },
+    "normative_statements": {
+      "pattern": ["should", "ought", "must", "need to", "have to", "right", "wrong", "good", "bad"],
+      "question_templates": [
+        "When the document claims that '{{STATEMENT}}', what underlying values or assumptions justify this normative judgment?",
+        "From whose perspective is the claim that '{{STATEMENT}}' considered valid?",
+        "How might someone with different fundamental values view the claim that '{{STATEMENT}}'?"
+      ]
+    },
+    "vague_terms": {
+      "pattern": ["many", "few", "some", "several", "various", "most", "better", "worse", "effective", "efficient"],
+      "question_templates": [
+        "How might '{{TERM}}' be more precisely defined in this context?",
+        "What specific criteria would determine whether something counts as '{{TERM}}'?",
+        "How would the argument change if '{{TERM}}' were defined differently?"
+      ]
+    },
+    "causal_claims": {
+      "pattern": ["because", "causes", "leads to", "results in", "due to", "effect of", "consequence"],
+      "question_templates": [
+        "What evidence supports the causal relationship in '{{STATEMENT}}'?",
+        "What alternative causes might explain the same effect described in '{{STATEMENT}}'?",
+        "How might we distinguish correlation from causation in the claim '{{STATEMENT}}'?"
+      ]
+    },
+    "logical_structure": {
+      "conditional": {
+        "pattern": ["if", "then", "when", "whenever", "implies", "entails"],
+        "question_templates": [
+          "Is the relationship between the antecedent and consequent in '{{STATEMENT}}' necessarily true?",
+          "Under what conditions might the antecedent be true but the consequent false?",
+          "Does this conditional claim work in reverse? If the consequent is true, must the antecedent also be true?"
+        ]
+      },
+      "generalization": {
+        "pattern": ["generally", "typically", "usually", "often", "tend to", "as a rule"],
+        "question_templates": [
+          "What is the basis for the generalization in '{{STATEMENT}}'?",
+          "How representative is the sample from which this generalization is drawn?",
+          "What exceptions to this generalization might be significant?"
+        ]
+      }
+    }
+  },
+  "meta_reasoning_prompts": [
+    "How does this document's logical structure compare to more rigorous forms of argumentation?",
+    "What unstated premises would need to be true for this document's conclusions to follow?",
+    "If we applied the principle of charitable interpretation, what would be the strongest version of this document's argument?",
+    "How might this document's approach change if it adopted a different logical framework?",
+    "What methods of proof (direct, contradiction, induction) are implicitly used in this document?"
+  ],
+  "output_format": {
+    "structure": [
+      {
+        "section": "Logical Structure Analysis",
+        "content": "Identification of main claims (p) and conclusions (q), and the logical relationships between them"
+      },
+      {
+        "section": "Key Assumptions",
+        "content": "Explicit and implicit assumptions that underpin the document's arguments"
+      },
+      {
+        "section": "Critical Issues",
+        "content": "Potential logical fallacies, gaps in reasoning, or areas requiring further justification"
+      },
+      {
+        "section": "Socratic Questions",
+        "content": "A set of questions designed to explore the document's reasoning more deeply, grouped by type and focus area"
+      },
+      {
+        "section": "Meta-Reasoning",
+        "content": "Higher-order questions about the document's overall logical approach and framework"
+      }
+    ]
+  }
+}

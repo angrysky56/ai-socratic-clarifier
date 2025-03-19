@@ -14,7 +14,7 @@ def check_and_install_sot():
     """Check if Sketch-of-Thought is installed and install if not available."""
     try:
         # Try to import SoT
-        from sketch_of_thought import SoT
+        from sot_installation import SoT
         print("Sketch-of-Thought is already installed.")
         return True
     except ImportError:

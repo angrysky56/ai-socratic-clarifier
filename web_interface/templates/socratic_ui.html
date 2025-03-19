@@ -1,0 +1,1977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Socratic-Clarifier</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --primary: #3498db;
+            --secondary: #2980b9;
+            --accent: #e67e22;
+            --light: #ecf0f1;
+            --dark: #2c3e50;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --warning: #f39c12;
+            --info: #3498db;
+            --sidebar-width: 280px;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            background-color: var(--light);
+        }
+        
+        .navbar {
+            background-color: var(--dark);
+            color: white;
+            height: 60px;
+        }
+        
+        .navbar-brand {
+            font-weight: bold;
+            color: white !important;
+        }
+        
+        .sidebar {
+            width: var(--sidebar-width);
+            height: calc(100vh - 60px);
+            background-color: var(--dark);
+            color: white;
+            overflow-y: auto;
+            transition: all 0.3s;
+            position: fixed;
+            top: 60px;
+            left: 0;
+        }
+        
+        .sidebar-item {
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+        
+        .sidebar-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-left: 3px solid var(--accent);
+        }
+        
+        .sidebar-item.active {
+            background-color: rgba(255, 255, 255, 0.2);
+            border-left: 3px solid var(--accent);
+        }
+        
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 0;
+            height: calc(100vh - 60px);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .conversation-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background-color: var(--light);
+        }
+        
+        .input-container {
+            padding: 15px;
+            background-color: white;
+            border-top: 1px solid #ddd;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: 10px;
+            max-width: 80%;
+            position: relative;
+            animation: fadeIn 0.3s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .user-message {
+            background-color: var(--primary);
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 0;
+        }
+        
+        .assistant-message {
+            background-color: white;
+            color: var(--dark);
+            margin-right: auto;
+            border-bottom-left-radius: 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .system-message {
+            background-color: var(--light);
+            color: var(--dark);
+            margin: 10px auto;
+            text-align: center;
+            max-width: 60%;
+            font-style: italic;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .document-card {
+            margin-bottom: 10px;
+            border-left: 3px solid var(--accent);
+            transition: all 0.2s;
+        }
+        
+        .document-card:hover {
+            transform: translateX(5px);
+        }
+        
+        .conversation-options {
+            position: absolute;
+            right: 20px;
+            top: 70px;
+            z-index: 100;
+        }
+        
+        .panel {
+            display: none;
+            height: 100%;
+            overflow-y: auto;
+        }
+        
+        .panel.active {
+            display: block;
+        }
+        
+        #reflection-container {
+            height: 500px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: white;
+        }
+        
+        #dropzone {
+            border: 2px dashed #ccc;
+            border-radius: 5px;
+            padding: 25px;
+            text-align: center;
+            background-color: #f9f9f9;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+        
+        #dropzone.highlight {
+            border-color: var(--accent);
+            background-color: rgba(230, 126, 34, 0.1);
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .btn-float {
+            position: fixed;
+            bottom: 100px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+            font-size: 1.5rem;
+            z-index: 1000;
+        }
+        
+        .btn-toggle-mode {
+            position: fixed;
+            bottom: 160px;
+            right: 30px;
+            border-radius: 20px;
+            padding: 5px 15px;
+            font-size: 0.9rem;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+        
+        /* Document library styles */
+        .document-library {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .document-list {
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+        
+        .document-actions {
+            margin-bottom: 15px;
+        }
+        
+        /* Settings panel styles */
+        .settings-panel {
+            padding: 20px;
+        }
+        
+        .settings-section {
+            margin-bottom: 30px;
+        }
+        
+        /* Sequential Thinking styles */
+        .thinking-step {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-left: 3px solid var(--info);
+            background-color: rgba(52, 152, 219, 0.1);
+        }
+        
+        .thinking-revision {
+            border-left: 3px solid var(--warning);
+            background-color: rgba(243, 156, 18, 0.1);
+        }
+        
+        .thinking-branch {
+            border-left: 3px solid var(--success);
+            background-color: rgba(46, 204, 113, 0.1);
+        }
+        
+        /* Reasoning styles */
+        .reasoning-container {
+            padding: 15px;
+            background-color: rgba(44, 62, 80, 0.05);
+            border-radius: 5px;
+            margin-top: 15px;
+            margin-bottom: 15px;
+        }
+        
+        /* Loading spinner */
+        .spinner-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100px;
+        }
+        
+        /* Tabs styling */
+        .nav-tabs .nav-link {
+            border: none;
+            color: var(--dark);
+            border-bottom: 3px solid transparent;
+            padding: 10px 15px;
+        }
+        
+        .nav-tabs .nav-link.active {
+            border-bottom: 3px solid var(--accent);
+            color: var(--accent);
+            font-weight: bold;
+        }
+        
+        .nav-tabs .nav-link:hover {
+            border-bottom: 3px solid #ddd;
+        }
+        
+        /* File upload button styling */
+        .file-input-container {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+        
+        .file-input {
+            position: absolute;
+            top: 0;
+            right: 0;
+            min-width: 100%;
+            min-height: 100%;
+            font-size: 100px;
+            text-align: right;
+            filter: alpha(opacity=0);
+            opacity: 0;
+            outline: none;
+            cursor: pointer;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="bi bi-lightbulb-fill me-2 text-warning"></i>
+                AI-Socratic-Clarifier
+            </a>
+            <div class="ms-auto">
+                <span class="badge bg-success" id="status-badge">Connected</span>
+                <button class="btn btn-outline-light btn-sm ms-2" id="settings-btn">
+                    <i class="bi bi-gear"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Main Content -->
+    <div class="d-flex">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header p-3 border-bottom">
+                <h5>Navigation</h5>
+            </div>
+            
+            <!-- Sidebar Menu -->
+            <div class="sidebar-item active" data-panel="chat-panel">
+                <i class="bi bi-chat-dots me-2"></i> Chat & Reasoning
+            </div>
+            <div class="sidebar-item" data-panel="documents-panel">
+                <i class="bi bi-file-text me-2"></i> Document Library
+            </div>
+            <div class="sidebar-item" data-panel="reflection-panel">
+                <i class="bi bi-diagram-3 me-2"></i> Sequential Thinking
+            </div>
+            <div class="sidebar-item" data-panel="multimodal-panel">
+                <i class="bi bi-image me-2"></i> Multimodal Analysis
+            </div>
+            <div class="sidebar-item" data-panel="settings-panel">
+                <i class="bi bi-gear me-2"></i> Settings
+            </div>
+            
+            <!-- Document Quick Access -->
+            <div class="p-3 border-top mt-3">
+                <h6>Recent Documents</h6>
+                <div id="quick-documents">
+                    <div class="text-muted small">No documents yet</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Panel Container -->
+        <div class="main-content">
+            <!-- Chat Panel -->
+            <div class="panel active" id="chat-panel">
+                <!-- Conversation Options -->
+                <div class="conversation-options">
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-sm btn-outline-primary active" id="mode-socratic">
+                            <i class="bi bi-question-circle"></i> Socratic
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary" id="mode-standard">
+                            <i class="bi bi-chat"></i> Standard
+                        </button>
+                    </div>
+                    <div class="form-check form-switch d-inline-block ms-2">
+                        <input class="form-check-input" type="checkbox" id="use-sot-toggle" checked>
+                        <label class="form-check-label small" for="use-sot-toggle">SOT</label>
+                    </div>
+                    <div class="form-check form-switch d-inline-block ms-2">
+                        <input class="form-check-input" type="checkbox" id="use-rag-toggle" checked>
+                        <label class="form-check-label small" for="use-rag-toggle">RAG</label>
+                    </div>
+                </div>
+                
+                <!-- Chat Messages -->
+                <div class="conversation-container" id="conversation-container">
+                    <div class="system-message">
+                        <p>Hello! I'm the Socratic Clarifier. I can help with critical thinking through questioning.</p>
+                        <p>How can I assist you today?</p>
+                    </div>
+                </div>
+                
+                <!-- Chat Input -->
+                <div class="input-container">
+                    <div class="input-group">
+                        <textarea class="form-control" id="message-input" rows="2" placeholder="Type your message..."></textarea>
+                        <button class="btn btn-primary" id="send-button">
+                            <i class="bi bi-send"></i> Send
+                        </button>
+                    </div>
+                    <div class="form-text mt-1">
+                        <small>Press Enter to send, Shift+Enter for new line</small>
+                    </div>
+                </div>
+                
+                <!-- Reasoning Visualization (Slide-up Panel) -->
+                <div class="card" id="reasoning-panel" style="display:none; position:fixed; bottom:0; left:var(--sidebar-width); right:0; max-height:60%; overflow-y:auto; box-shadow:0 -3px 10px rgba(0,0,0,0.1);">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Reasoning Process</h5>
+                        <button type="button" class="btn-close" id="close-reasoning"></button>
+                    </div>
+                    <div class="card-body">
+                        <div id="reasoning-content"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Documents Panel -->
+            <div class="panel" id="documents-panel">
+                <div class="document-library p-3">
+                    <h3 class="mb-3">Document Library</h3>
+                    
+                    <!-- Upload Area -->
+                    <div id="dropzone" class="mb-3">
+                        <i class="bi bi-cloud-upload display-4"></i>
+                        <p class="mt-2">Drag & drop files here, or click to select files</p>
+                        <div class="file-input-container">
+                            <button class="btn btn-primary">Select Files</button>
+                            <input type="file" class="file-input" id="file-input" multiple>
+                        </div>
+                    </div>
+                    
+                    <!-- Document List -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">Your Documents</h5>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-secondary" id="refresh-docs">
+                                        <i class="bi bi-arrow-clockwise"></i>
+                                    </button>
+                                    <button class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                                        <i class="bi bi-filter"></i>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" href="#" data-filter="all">All Documents</a></li>
+                                        <li><a class="dropdown-item" href="#" data-filter="pdf">PDFs</a></li>
+                                        <li><a class="dropdown-item" href="#" data-filter="image">Images</a></li>
+                                        <li><a class="dropdown-item" href="#" data-filter="text">Text Files</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="list-group list-group-flush" id="document-list">
+                            <div class="spinner-container" id="document-loading">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Reflection Visualization Panel -->
+            <div class="panel" id="reflection-panel">
+                <div class="p-3">
+                    <h3 class="mb-3">Sequential Thinking Visualization</h3>
+                    
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <p>This visualization shows the AI's sequential thinking process, including:</p>
+                            <ul>
+                                <li>Step-by-step reasoning paths</li>
+                                <li>Revisions and corrections</li>
+                                <li>Branching thought processes</li>
+                                <li>Meta-reasoning components</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- Reflection Visualization Container -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">Ecosystem Visualization</h5>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-secondary" id="refresh-ecosystem">
+                                        <i class="bi bi-arrow-clockwise"></i> Refresh
+                                    </button>
+                                    <button class="btn btn-outline-secondary" id="reset-ecosystem">
+                                        <i class="bi bi-trash"></i> Reset
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="ecosystem-graph" style="height:500px; border:1px solid #ddd; border-radius:5px"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Recent Thinking Steps -->
+                    <div class="card mt-3">
+                        <div class="card-header">Recent Thinking Steps</div>
+                        <div class="list-group list-group-flush" id="thinking-steps">
+                            <div class="list-group-item text-center" id="no-thinking-steps">
+                                No thinking steps available yet
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Multimodal Analysis Panel -->
+            <div class="panel" id="multimodal-panel">
+                <div class="p-3">
+                    <h3 class="mb-3">Multimodal Analysis</h3>
+                    
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Upload Image or PDF</h5>
+                            
+                            <div id="multimodal-dropzone" class="dropzone mb-3">
+                                <div class="file-input-container">
+                                    <button class="btn btn-primary">Select File</button>
+                                    <input type="file" class="file-input" id="multimodal-file-input" accept=".jpg,.jpeg,.png,.gif,.bmp,.pdf">
+                                </div>
+                                <p class="mt-2 text-muted small">Supports JPG, PNG, GIF, BMP, and PDF files</p>
+                            </div>
+                            
+                            <div class="form-group mt-3">
+                                <label class="form-label">Analysis Mode:</label>
+                                <div class="mode-toggle mb-3">
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="analysisMode" id="multimodalMode" value="multimodal" checked>
+                                        <label class="form-check-label" for="multimodalMode">Multimodal Analysis</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="analysisMode" id="socraticMode" value="socratic">
+                                        <label class="form-check-label" for="socraticMode">Socratic Analysis</label>
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-3" id="socraticOptions" style="display:none;">
+                                    <label for="maxQuestionsSlider" class="form-label">Maximum Questions: <span id="maxQuestionsValue">5</span></label>
+                                    <input type="range" class="form-range" min="1" max="10" step="1" value="5" id="maxQuestionsSlider">
+                                    
+                                    <div class="form-check mt-2">
+                                        <input class="form-check-input" type="checkbox" id="useSreCheckbox" checked>
+                                        <label class="form-check-label" for="useSreCheckbox">
+                                            Use Socratic Reasoning Engine for improved questions
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <button id="process-multimodal-button" class="btn btn-primary mt-3">
+                                <i class="bi bi-gear"></i> Process
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Analysis Results Card (hidden until processing complete) -->
+                    <div class="card" id="multimodal-results" style="display:none;">
+                        <div class="card-header">
+                            <h5 class="mb-0">Analysis Results</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-5">
+                                    <div id="multimodal-image-container" class="mb-3">
+                                        <img id="multimodal-preview" class="img-fluid border rounded" style="max-height:300px;" alt="Uploaded image">
+                                    </div>
+                                </div>
+                                <div class="col-md-7">
+                                    <div id="multimodal-text-container">
+                                        <h6>Extracted Text:</h6>
+                                        <div id="extracted-text" class="border rounded p-3 mb-3" style="max-height:150px; overflow-y:auto;"></div>
+                                        
+                                        <div id="multimodal-analysis-container">
+                                            <h6>Analysis:</h6>
+                                            <div id="multimodal-analysis" class="border rounded p-3" style="max-height:200px; overflow-y:auto;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Socratic Questions Section -->
+                            <div id="socratic-questions-container" style="display:none;">
+                                <h6 class="mt-3">Socratic Questions:</h6>
+                                <div id="socratic-questions" class="list-group"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Settings Panel -->
+            <div class="panel" id="settings-panel">
+                <div class="settings-panel">
+                    <h3 class="mb-4">Settings</h3>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <!-- LLM Settings -->
+                            <div class="settings-section">
+                                <h5>LLM Settings</h5>
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <label for="provider-select" class="form-label">AI Provider</label>
+                                            <select id="provider-select" class="form-select">
+                                                <option value="auto">Auto-Select</option>
+                                                <option value="ollama">Ollama (Local)</option>
+                                                <option value="external">External API</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="model-select" class="form-label">Default Model</label>
+                                            <select id="model-select" class="form-select">
+                                                <option value="gemma3:latest">Gemma 3</option>
+                                                <option value="llama3:latest">Llama 3</option>
+                                                <option value="mistral:latest">Mistral</option>
+                                                <option value="phi4:latest">Phi-4</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="multimodal-model-select" class="form-label">Multimodal Model</label>
+                                            <select id="multimodal-model-select" class="form-select">
+                                                <option value="llava:latest">Llava</option>
+                                                <option value="bakllava:latest">Bakllava</option>
+                                                <option value="moondream:latest">Moondream</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Features Settings -->
+                            <div class="settings-section">
+                                <h5>Features</h5>
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div class="form-check form-switch mb-3">
+                                            <input class="form-check-input" type="checkbox" id="setting-sot" checked>
+                                            <label class="form-check-label" for="setting-sot">Use Sequential of Thought</label>
+                                            <div class="form-text">Enable structured reasoning paths for complex questions</div>
+                                        </div>
+                                        
+                                        <div class="form-check form-switch mb-3">
+                                            <input class="form-check-input" type="checkbox" id="setting-rag" checked>
+                                            <label class="form-check-label" for="setting-rag">Use Document RAG</label>
+                                            <div class="form-text">Use uploaded documents as context for responses</div>
+                                        </div>
+                                        
+                                        <div class="form-check form-switch mb-3">
+                                            <input class="form-check-input" type="checkbox" id="setting-multimodal" checked>
+                                            <label class="form-check-label" for="setting-multimodal">Use Multimodal</label>
+                                            <div class="form-text">Enable image and PDF analysis capabilities</div>
+                                        </div>
+                                        
+                                        <div class="form-check form-switch mb-3">
+                                            <input class="form-check-input" type="checkbox" id="setting-llm-questions" checked>
+                                            <label class="form-check-label" for="setting-llm-questions">Use LLM for Questions</label>
+                                            <div class="form-text">Use LLM to generate Socratic questions</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <!-- Patterns Settings -->
+                            <div class="settings-section">
+                                <h5>Detection Patterns</h5>
+                                <div class="card">
+                                    <div class="card-body">
+                                        <ul class="nav nav-tabs" id="patterns-tabs" role="tablist">
+                                            <li class="nav-item" role="presentation">
+                                                <button class="nav-link active" id="vague-tab" data-bs-toggle="tab" data-bs-target="#vague-content" type="button" role="tab">Vague Terms</button>
+                                            </li>
+                                            <li class="nav-item" role="presentation">
+                                                <button class="nav-link" id="bias-tab" data-bs-toggle="tab" data-bs-target="#bias-content" type="button" role="tab">Bias</button>
+                                            </li>
+                                            <li class="nav-item" role="presentation">
+                                                <button class="nav-link" id="claim-tab" data-bs-toggle="tab" data-bs-target="#claim-content" type="button" role="tab">Claims</button>
+                                            </li>
+                                        </ul>
+                                        
+                                        <div class="tab-content pt-3" id="patterns-content">
+                                            <div class="tab-pane fade show active" id="vague-content" role="tabpanel">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Vague Terms</label>
+                                                    <textarea class="form-control" id="vague-patterns" rows="5" placeholder="Enter one pattern per line"></textarea>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="tab-pane fade" id="bias-content" role="tabpanel">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Gender Bias Patterns</label>
+                                                    <textarea class="form-control" id="gender-bias-patterns" rows="3" placeholder="Enter one pattern per line"></textarea>
+                                                </div>
+                                                
+                                                <div class="mb-3">
+                                                    <label class="form-label">Stereotype Patterns</label>
+                                                    <textarea class="form-control" id="stereotype-patterns" rows="3" placeholder="Enter one pattern per line"></textarea>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="tab-pane fade" id="claim-content" role="tabpanel">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Unsupported Claim Patterns</label>
+                                                    <textarea class="form-control" id="claim-patterns" rows="5" placeholder="Enter one pattern per line"></textarea>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="text-end mt-3">
+                                            <button id="reset-patterns" class="btn btn-outline-secondary me-2">Reset to Defaults</button>
+                                            <button id="save-patterns" class="btn btn-primary">Save Patterns</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Advanced Settings -->
+                            <div class="settings-section">
+                                <h5>Advanced Settings</h5>
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <label for="context-length" class="form-label">Context Length</label>
+                                            <select id="context-length" class="form-select">
+                                                <option value="4096">4K (Default)</option>
+                                                <option value="8192" selected>8K (Optimized)</option>
+                                                <option value="16384">16K (Extended)</option>
+                                                <option value="32768">32K (Maximum)</option>
+                                            </select>
+                                            <div class="form-text">Larger values require more memory</div>
+                                        </div>
+                                        
+                                        <div class="form-check form-switch mb-3">
+                                            <input class="form-check-input" type="checkbox" id="flash-attention" checked>
+                                            <label class="form-check-label" for="flash-attention">Flash Attention</label>
+                                            <div class="form-text">Optimizes memory usage for longer contexts</div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="kv-cache" class="form-label">KV Cache Type</label>
+                                            <select id="kv-cache" class="form-select">
+                                                <option value="f16">F16 (Full Precision)</option>
+                                                <option value="q8_0" selected>Q8 (8-bit Quantization)</option>
+                                                <option value="q4_0">Q4 (4-bit Quantization)</option>
+                                            </select>
+                                            <div class="form-text">Lower precision = less memory, slight quality decrease</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <button id="save-all-settings" class="btn btn-primary">Save All Settings</button>
+                        <button id="reset-all-settings" class="btn btn-outline-secondary ms-2">Reset to Defaults</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Reasoning Toggle Button -->
+    <button class="btn btn-primary btn-float" id="toggle-reasoning" title="Show/Hide Reasoning">
+        <i class="bi bi-lightbulb"></i>
+    </button>
+    
+    <!-- Mode Toggle Button -->
+    <button class="btn btn-outline-primary btn-toggle-mode" id="toggle-chat-mode">
+        <i class="bi bi-question-circle"></i> Socratic Mode
+    </button>
+    
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Markdown-it for markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/markdown-it@13.0.1/dist/markdown-it.min.js"></script>
+    <!-- Vis.js for graph visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/vis-network@9.1.2/dist/vis-network.min.js"></script>
+    
+    <!-- Custom Scripts -->
+    <script>
+        // Initialize markdown renderer
+        const md = window.markdownit();
+        
+        // Global state
+        const state = {
+            mode: 'socratic', // 'socratic' or 'standard'
+            useSOT: true,
+            useRAG: true,
+            reasoning: null,
+            reasoningVisible: false,
+            thinking: [],
+            documents: [],
+            uploadingFiles: false,
+            processingMessage: false
+        };
+        
+        // DOM Elements
+        const elements = {
+            panels: {
+                chat: document.getElementById('chat-panel'),
+                documents: document.getElementById('documents-panel'),
+                reflection: document.getElementById('reflection-panel'),
+                multimodal: document.getElementById('multimodal-panel'),
+                settings: document.getElementById('settings-panel')
+            },
+            sidebar: {
+                items: document.querySelectorAll('.sidebar-item')
+            },
+            chat: {
+                container: document.getElementById('conversation-container'),
+                input: document.getElementById('message-input'),
+                sendButton: document.getElementById('send-button'),
+                toggleMode: document.getElementById('toggle-chat-mode'),
+                modeSocratic: document.getElementById('mode-socratic'),
+                modeStandard: document.getElementById('mode-standard'),
+                useSOTToggle: document.getElementById('use-sot-toggle'),
+                useRAGToggle: document.getElementById('use-rag-toggle')
+            },
+            reasoning: {
+                panel: document.getElementById('reasoning-panel'),
+                content: document.getElementById('reasoning-content'),
+                toggleButton: document.getElementById('toggle-reasoning'),
+                closeButton: document.getElementById('close-reasoning')
+            },
+            documents: {
+                list: document.getElementById('document-list'),
+                loading: document.getElementById('document-loading'),
+                dropzone: document.getElementById('dropzone'),
+                fileInput: document.getElementById('file-input'),
+                refreshButton: document.getElementById('refresh-docs'),
+                quickList: document.getElementById('quick-documents')
+            },
+            reflection: {
+                graph: document.getElementById('ecosystem-graph'),
+                refreshButton: document.getElementById('refresh-ecosystem'),
+                resetButton: document.getElementById('reset-ecosystem'),
+                thinkingSteps: document.getElementById('thinking-steps'),
+                noThinkingSteps: document.getElementById('no-thinking-steps')
+            },
+            multimodal: {
+                fileInput: document.getElementById('multimodal-file-input'),
+                processButton: document.getElementById('process-multimodal-button'),
+                dropzone: document.getElementById('multimodal-dropzone'),
+                results: document.getElementById('multimodal-results'),
+                preview: document.getElementById('multimodal-preview'),
+                extractedText: document.getElementById('extracted-text'),
+                analysis: document.getElementById('multimodal-analysis'),
+                questionsContainer: document.getElementById('socratic-questions-container'),
+                questions: document.getElementById('socratic-questions')
+            },
+            settings: {
+                saveAllButton: document.getElementById('save-all-settings'),
+                resetAllButton: document.getElementById('reset-all-settings'),
+                providerSelect: document.getElementById('provider-select'),
+                modelSelect: document.getElementById('model-select'),
+                multimodalModelSelect: document.getElementById('multimodal-model-select'),
+                useSOT: document.getElementById('setting-sot'),
+                useRAG: document.getElementById('setting-rag'),
+                useMultimodal: document.getElementById('setting-multimodal'),
+                useLLMQuestions: document.getElementById('setting-llm-questions'),
+                contextLength: document.getElementById('context-length'),
+                flashAttention: document.getElementById('flash-attention'),
+                kvCache: document.getElementById('kv-cache'),
+                savePatterns: document.getElementById('save-patterns'),
+                resetPatterns: document.getElementById('reset-patterns'),
+                vaguePatterns: document.getElementById('vague-patterns'),
+                genderBiasPatterns: document.getElementById('gender-bias-patterns'),
+                stereotypePatterns: document.getElementById('stereotype-patterns'),
+                claimPatterns: document.getElementById('claim-patterns')
+            }
+        };
+        
+        // Initialize the UI
+        document.addEventListener('DOMContentLoaded', function() {
+            // Panel switching
+            elements.sidebar.items.forEach(item => {
+                item.addEventListener('click', function() {
+                    // Remove active class from all items
+                    elements.sidebar.items.forEach(i => i.classList.remove('active'));
+                    
+                    // Add active class to clicked item
+                    this.classList.add('active');
+                    
+                    // Get panel to show
+                    const panelId = this.getAttribute('data-panel');
+                    
+                    // Hide all panels
+                    for (const key in elements.panels) {
+                        elements.panels[key].classList.remove('active');
+                    }
+                    
+                    // Show selected panel
+                    document.getElementById(panelId).classList.add('active');
+                    
+                    // Load content based on panel
+                    if (panelId === 'documents-panel') {
+                        loadDocuments();
+                    } else if (panelId === 'reflection-panel') {
+                        loadReflection();
+                    }
+                });
+            });
+            
+            // Chat functionality
+            setupChat();
+            
+            // Reasoning panel
+            setupReasoning();
+            
+            // Document library
+            setupDocuments();
+            
+            // Reflection visualization
+            setupReflection();
+            
+            // Multimodal analysis
+            setupMultimodal();
+            
+            // Settings panel
+            setupSettings();
+            
+            // Load initial data
+            loadDocuments();
+        });
+        
+        // Setup chat functionality
+        function setupChat() {
+            // Send button click
+            elements.chat.sendButton.addEventListener('click', sendMessage);
+            
+            // Enter key to send
+            elements.chat.input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+            
+            // Mode toggles
+            elements.chat.modeSocratic.addEventListener('click', function() {
+                setMode('socratic');
+            });
+            
+            elements.chat.modeStandard.addEventListener('click', function() {
+                setMode('standard');
+            });
+            
+            elements.chat.toggleMode.addEventListener('click', function() {
+                setMode(state.mode === 'socratic' ? 'standard' : 'socratic');
+            });
+            
+            // SOT toggle
+            elements.chat.useSOTToggle.addEventListener('change', function() {
+                state.useSOT = this.checked;
+            });
+            
+            // RAG toggle
+            elements.chat.useRAGToggle.addEventListener('change', function() {
+                state.useRAG = this.checked;
+            });
+        }
+        
+        // Setup reasoning panel
+        function setupReasoning() {
+            // Toggle reasoning button
+            elements.reasoning.toggleButton.addEventListener('click', function() {
+                toggleReasoning();
+            });
+            
+            // Close reasoning button
+            elements.reasoning.closeButton.addEventListener('click', function() {
+                toggleReasoning(false);
+            });
+        }
+        
+        // Setup document library
+        function setupDocuments() {
+            // File input change
+            elements.documents.fileInput.addEventListener('change', function(e) {
+                uploadFiles(this.files);
+            });
+            
+            // Dropzone
+            const dropzone = elements.documents.dropzone;
+            
+            // Highlight dropzone on drag over
+            dropzone.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                this.classList.add('highlight');
+            });
+            
+            dropzone.addEventListener('dragleave', function() {
+                this.classList.remove('highlight');
+            });
+            
+            dropzone.addEventListener('drop', function(e) {
+                e.preventDefault();
+                this.classList.remove('highlight');
+                
+                // Upload files
+                const files = e.dataTransfer.files;
+                uploadFiles(files);
+            });
+            
+            // Refresh button
+            elements.documents.refreshButton.addEventListener('click', function() {
+                loadDocuments();
+            });
+        }
+        
+        // Setup reflection visualization
+        function setupReflection() {
+            // Refresh button
+            elements.reflection.refreshButton.addEventListener('click', function() {
+                loadReflection();
+            });
+            
+            // Reset button
+            elements.reflection.resetButton.addEventListener('click', function() {
+                resetReflection();
+            });
+        }
+        
+        // Setup multimodal analysis
+        function setupMultimodal() {
+            // Mode toggles
+            document.querySelectorAll('input[name="analysisMode"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    const socraticOptions = document.getElementById('socraticOptions');
+                    if (this.value === 'socratic') {
+                        socraticOptions.style.display = 'block';
+                    } else {
+                        socraticOptions.style.display = 'none';
+                    }
+                });
+            });
+            
+            // Max questions slider
+            const maxQuestionsSlider = document.getElementById('maxQuestionsSlider');
+            const maxQuestionsValue = document.getElementById('maxQuestionsValue');
+            
+            maxQuestionsSlider.addEventListener('input', function() {
+                maxQuestionsValue.textContent = this.value;
+            });
+            
+            // File input
+            elements.multimodal.fileInput.addEventListener('change', function(e) {
+                const file = this.files[0];
+                if (file) {
+                    // Preview image
+                    if (file.type.startsWith('image/')) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            elements.multimodal.preview.src = e.target.result;
+                        };
+                        reader.readAsDataURL(file);
+                    } else {
+                        // For PDFs, show a placeholder
+                        elements.multimodal.preview.src = '/static/img/pdf_icon.png';
+                    }
+                }
+            });
+            
+            // Process button
+            elements.multimodal.processButton.addEventListener('click', function() {
+                processMultimodalFile();
+            });
+        }
+        
+        // Setup settings panel
+        function setupSettings() {
+            // Load settings from API
+            fetch('/api/settings')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        populateSettings(data.settings);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading settings:', error);
+                });
+            
+            // Save all settings button
+            elements.settings.saveAllButton.addEventListener('click', function() {
+                saveAllSettings();
+            });
+            
+            // Reset all settings button
+            elements.settings.resetAllButton.addEventListener('click', function() {
+                resetAllSettings();
+            });
+            
+            // Save patterns button
+            elements.settings.savePatterns.addEventListener('click', function() {
+                savePatterns();
+            });
+            
+            // Reset patterns button
+            elements.settings.resetPatterns.addEventListener('click', function() {
+                resetPatterns();
+            });
+        }
+        
+        // Send a message
+        function sendMessage() {
+            const message = elements.chat.input.value.trim();
+            if (!message) return;
+            
+            // Clear input
+            elements.chat.input.value = '';
+            
+            // Add user message to UI
+            addMessage('user', message);
+            
+            // Set processing state
+            state.processingMessage = true;
+            
+            // Get selected RAG documents
+            const documentContext = state.useRAG ? getSelectedDocuments() : [];
+            
+            // Send to API
+            fetch('/api/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    message: message,
+                    mode: state.mode,
+                    use_sot: state.useSOT,
+                    use_rag: state.useRAG,
+                    document_context: documentContext
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.reply) {
+                    // Add assistant message to UI
+                    addMessage('assistant', data.reply);
+                    
+                    // Store reasoning
+                    if (data.reasoning) {
+                        state.reasoning = data.reasoning;
+                        
+                        // Update reasoning panel if visible
+                        if (state.reasoningVisible) {
+                            showReasoning(data.reasoning);
+                        }
+                    }
+                    
+                    // Update thinking steps if available
+                    if (data.thinking) {
+                        state.thinking = data.thinking;
+                        updateThinkingSteps(data.thinking);
+                    }
+                } else {
+                    // Add error message
+                    addMessage('system', 'Error: ' + (data.error || 'Unknown error'));
+                }
+                
+                // Clear processing state
+                state.processingMessage = false;
+            })
+            .catch(error => {
+                console.error('Error sending message:', error);
+                addMessage('system', 'Error sending message. Please try again.');
+                state.processingMessage = false;
+            });
+        }
+        
+        // Add a message to the chat
+        function addMessage(type, content) {
+            const container = elements.chat.container;
+            const messageEl = document.createElement('div');
+            messageEl.className = `message ${type}-message`;
+            
+            if (type === 'assistant') {
+                // Render markdown for assistant messages
+                messageEl.innerHTML = md.render(content);
+            } else {
+                messageEl.textContent = content;
+            }
+            
+            container.appendChild(messageEl);
+            
+            // Scroll to bottom
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        // Set chat mode
+        function setMode(mode) {
+            state.mode = mode;
+            
+            // Update UI
+            if (mode === 'socratic') {
+                elements.chat.modeSocratic.classList.add('active');
+                elements.chat.modeStandard.classList.remove('active');
+                elements.chat.toggleMode.innerHTML = '<i class="bi bi-question-circle"></i> Socratic Mode';
+            } else {
+                elements.chat.modeSocratic.classList.remove('active');
+                elements.chat.modeStandard.classList.add('active');
+                elements.chat.toggleMode.innerHTML = '<i class="bi bi-chat"></i> Standard Mode';
+            }
+        }
+        
+        // Toggle reasoning panel
+        function toggleReasoning(show) {
+            if (show === undefined) {
+                show = !state.reasoningVisible;
+            }
+            
+            state.reasoningVisible = show;
+            
+            if (show && state.reasoning) {
+                showReasoning(state.reasoning);
+                elements.reasoning.panel.style.display = 'block';
+            } else {
+                elements.reasoning.panel.style.display = 'none';
+            }
+        }
+        
+        // Show reasoning in panel
+        function showReasoning(reasoning) {
+            if (!reasoning) return;
+            
+            const container = elements.reasoning.content;
+            
+            // Clear previous content
+            container.innerHTML = '';
+            
+            // Check if reasoning is structured or text
+            if (typeof reasoning === 'object') {
+                // Structured reasoning (SoT)
+                container.innerHTML = `
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0">Sequential of Thought (${reasoning.paradigm || 'Standard'})</h6>
+                        </div>
+                        <div class="card-body">
+                            <pre class="reasoning-content">${JSON.stringify(reasoning, null, 2)}</pre>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Plain text reasoning
+                container.innerHTML = `
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0">Reasoning Process</h6>
+                        </div>
+                        <div class="card-body">
+                            ${md.render(reasoning)}
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        // Upload files to document library
+        function uploadFiles(files) {
+            if (!files || files.length === 0) return;
+            
+            // Set uploading state
+            state.uploadingFiles = true;
+            
+            // Show uploading message
+            addMessage('system', `Uploading ${files.length} document(s)...`);
+            
+            // Create promises for each file upload
+            const uploadPromises = Array.from(files).map(file => {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('generate_embeddings', '1');
+                
+                return fetch('/api/documents/upload', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    return {
+                        filename: file.name,
+                        success: data.success,
+                        document_id: data.document_id,
+                        error: data.error
+                    };
+                })
+                .catch(error => {
+                    return {
+                        filename: file.name,
+                        success: false,
+                        error: error.message
+                    };
+                });
+            });
+            
+            // Wait for all uploads to complete
+            Promise.all(uploadPromises)
+                .then(results => {
+                    // Count successes and failures
+                    const successes = results.filter(r => r.success).length;
+                    const failures = results.filter(r => !r.success).length;
+                    
+                    // Show result message
+                    if (failures === 0) {
+                        addMessage('system', `Successfully uploaded ${successes} document(s)`);
+                    } else {
+                        addMessage('system', `Uploaded ${successes} document(s), failed to upload ${failures} document(s)`);
+                    }
+                    
+                    // Clear uploading state
+                    state.uploadingFiles = false;
+                    
+                    // Reload documents
+                    loadDocuments();
+                });
+        }
+        
+        // Load documents from API
+        function loadDocuments() {
+            elements.documents.loading.style.display = 'flex';
+            
+            fetch('/api/documents')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        state.documents = data.documents;
+                        displayDocuments(data.documents);
+                    } else {
+                        console.error('Error loading documents:', data.error);
+                    }
+                    elements.documents.loading.style.display = 'none';
+                })
+                .catch(error => {
+                    console.error('Error loading documents:', error);
+                    elements.documents.loading.style.display = 'none';
+                });
+        }
+        
+        // Display documents in the library
+        function displayDocuments(documents) {
+            const documentList = elements.documents.list;
+            const quickList = elements.documents.quickList;
+            
+            // Clear previous content
+            documentList.innerHTML = '';
+            quickList.innerHTML = '';
+            
+            if (!documents || documents.length === 0) {
+                documentList.innerHTML = '<div class="list-group-item text-center">No documents yet. Upload one to get started.</div>';
+                quickList.innerHTML = '<div class="text-muted small">No documents yet</div>';
+                return;
+            }
+            
+            // Display documents in main list
+            documents.forEach(doc => {
+                const docItem = document.createElement('div');
+                docItem.className = 'list-group-item document-item';
+                docItem.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">${doc.filename}</h6>
+                            <div class="small text-muted">
+                                ${formatFileSize(doc.file_size)} | ${formatDate(doc.upload_date)}
+                            </div>
+                        </div>
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-outline-primary view-document" data-id="${doc.id}">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-primary use-document" data-id="${doc.id}" title="Use in chat">
+                                <i class="bi bi-chat-text"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger delete-document" data-id="${doc.id}">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                documentList.appendChild(docItem);
+                
+                // Add event listeners
+                docItem.querySelector('.view-document').addEventListener('click', function() {
+                    viewDocument(this.getAttribute('data-id'));
+                });
+                
+                docItem.querySelector('.use-document').addEventListener('click', function() {
+                    useDocumentInChat(this.getAttribute('data-id'));
+                });
+                
+                docItem.querySelector('.delete-document').addEventListener('click', function() {
+                    deleteDocument(this.getAttribute('data-id'));
+                });
+            });
+            
+            // Display recent documents in sidebar
+            const recentDocuments = documents.slice(0, 5);
+            recentDocuments.forEach(doc => {
+                const quickItem = document.createElement('div');
+                quickItem.className = 'document-card p-2 mb-2';
+                quickItem.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="text-truncate" style="max-width: 180px;">
+                            <i class="bi bi-file-text me-1 text-muted"></i>
+                            <span>${doc.filename}</span>
+                        </div>
+                        <button class="btn btn-sm btn-link use-quick-document p-0" data-id="${doc.id}" title="Use in chat">
+                            <i class="bi bi-chat-text"></i>
+                        </button>
+                    </div>
+                `;
+                quickList.appendChild(quickItem);
+                
+                // Add event listeners
+                quickItem.querySelector('.use-quick-document').addEventListener('click', function() {
+                    useDocumentInChat(this.getAttribute('data-id'));
+                });
+            });
+        }
+        
+        // View document details
+        function viewDocument(documentId) {
+            const doc = state.documents.find(d => d.id === documentId);
+            if (!doc) return;
+            
+            fetch(`/api/documents/${documentId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Show document content in a modal or panel
+                        const content = data.document.text_content || 'No text content available';
+                        
+                        // For now, just add it to the chat as a system message
+                        addMessage('system', `Document: ${doc.filename}\n\n${content.substring(0, 500)}${content.length > 500 ? '...' : ''}`);
+                    } else {
+                        console.error('Error loading document:', data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading document:', error);
+                });
+        }
+        
+        // Use document in chat
+        function useDocumentInChat(documentId) {
+            const doc = state.documents.find(d => d.id === documentId);
+            if (!doc) return;
+            
+            // Toggle to chat panel
+            elements.sidebar.items[0].click();
+            
+            // Enable RAG
+            elements.chat.useRAGToggle.checked = true;
+            state.useRAG = true;
+            
+            // Add system message
+            addMessage('system', `Using document "${doc.filename}" for context`);
+            
+            // Get the document content from API
+            fetch(`/api/documents/${documentId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Store document content for use in RAG
+                        doc.text_content = data.document.text_content;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading document for RAG:', error);
+                });
+        }
+        
+        // Delete a document
+        function deleteDocument(documentId) {
+            if (!confirm('Are you sure you want to delete this document?')) return;
+            
+            fetch(`/api/documents/${documentId}/delete`, {
+                method: 'POST'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Reload documents
+                        loadDocuments();
+                        
+                        // Add system message
+                        addMessage('system', `Document deleted successfully`);
+                    } else {
+                        console.error('Error deleting document:', data.error);
+                        addMessage('system', `Error deleting document: ${data.error}`);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting document:', error);
+                    addMessage('system', `Error deleting document: ${error.message}`);
+                });
+        }
+        
+        // Get selected documents for RAG
+        function getSelectedDocuments() {
+            // This would typically use a selection UI
+            // For now, just use all documents
+            return state.documents
+                .filter(doc => doc.text_content)
+                .map(doc => ({
+                    document_id: doc.id,
+                    filename: doc.filename,
+                    content: doc.text_content
+                }));
+        }
+        
+        // Load reflection visualization
+        function loadReflection() {
+            fetch('/api/reflection/ecosystem')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.ecosystem) {
+                        drawEcosystemGraph(data.ecosystem);
+                    } else {
+                        console.error('Error loading reflection:', data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading reflection:', error);
+                });
+            
+            // Load thinking steps
+            fetch('/api/reflection/thinking')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.thinking) {
+                        state.thinking = data.thinking;
+                        updateThinkingSteps(data.thinking);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading thinking steps:', error);
+                });
+        }
+        
+        // Draw ecosystem graph
+        function drawEcosystemGraph(ecosystem) {
+            // This is a placeholder for actual visualization
+            // In a real implementation, this would use vis.js or D3.js
+            const container = elements.reflection.graph;
+            
+            // Simple placeholder for now
+            if (!ecosystem || !ecosystem.nodes || ecosystem.nodes.length === 0) {
+                container.innerHTML = '<div class="d-flex justify-content-center align-items-center h-100"><p class="text-muted">No ecosystem data available yet</p></div>';
+                return;
+            }
+            
+            // Example with vis.js
+            const nodes = ecosystem.nodes.map(node => ({
+                id: node.id,
+                label: node.name,
+                group: node.type
+            }));
+            
+            const edges = ecosystem.edges.map(edge => ({
+                from: edge.source,
+                to: edge.target,
+                label: edge.label
+            }));
+            
+            const data = {
+                nodes: new vis.DataSet(nodes),
+                edges: new vis.DataSet(edges)
+            };
+            
+            const options = {
+                nodes: {
+                    shape: 'box',
+                    margin: 10,
+                    font: {
+                        size: 14
+                    }
+                },
+                edges: {
+                    arrows: 'to',
+                    smooth: {
+                        type: 'curvedCW',
+                        roundness: 0.2
+                    }
+                },
+                physics: {
+                    stabilization: true,
+                    barnesHut: {
+                        gravitationalConstant: -2000,
+                        centralGravity: 0.3,
+                        springLength: 150,
+                        springConstant: 0.04
+                    }
+                },
+                layout: {
+                    hierarchical: {
+                        direction: 'UD',
+                        sortMethod: 'directed',
+                        levelSeparation: 150
+                    }
+                }
+            };
+            
+            container.innerHTML = '';
+            new vis.Network(container, data, options);
+        }
+        
+        // Reset reflection
+        function resetReflection() {
+            if (!confirm('Are you sure you want to reset the reflection ecosystem? This will clear all thinking history.')) return;
+            
+            fetch('/api/reflection/reset', {
+                method: 'POST'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Reload reflection
+                        loadReflection();
+                        
+                        // Add system message
+                        addMessage('system', `Reflection ecosystem reset successfully`);
+                    } else {
+                        console.error('Error resetting reflection:', data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error resetting reflection:', error);
+                });
+        }
+        
+        // Update thinking steps display
+        function updateThinkingSteps(thinking) {
+            const container = elements.reflection.thinkingSteps;
+            const noSteps = elements.reflection.noThinkingSteps;
+            
+            if (!thinking || thinking.length === 0) {
+                noSteps.style.display = 'block';
+                return;
+            }
+            
+            noSteps.style.display = 'none';
+            container.innerHTML = '';
+            
+            thinking.forEach((step, index) => {
+                const stepElement = document.createElement('div');
+                
+                // Determine step type
+                let stepClass = 'thinking-step';
+                if (step.isRevision) {
+                    stepClass += ' thinking-revision';
+                } else if (step.branchId) {
+                    stepClass += ' thinking-branch';
+                }
+                
+                stepElement.className = 'list-group-item ' + stepClass;
+                stepElement.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="me-2">
+                            <span class="badge ${step.isRevision ? 'bg-warning' : (step.branchId ? 'bg-success' : 'bg-info')}">
+                                Step ${step.thoughtNumber}${step.isRevision ? ' (Revision)' : ''}
+                            </span>
+                        </div>
+                        <div class="flex-grow-1">
+                            ${md.render(step.thought)}
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(stepElement);
+            });
+        }
+        
+        // Process multimodal file
+        function processMultimodalFile() {
+            const fileInput = elements.multimodal.fileInput;
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Please select a file to analyze');
+                return;
+            }
+            
+            // Get analysis mode
+            const mode = document.querySelector('input[name="analysisMode"]:checked').value;
+            
+            // Get socratic options if applicable
+            let maxQuestions = 5;
+            let useSre = true;
+            
+            if (mode === 'socratic') {
+                maxQuestions = document.getElementById('maxQuestionsSlider').value;
+                useSre = document.getElementById('useSreCheckbox').checked;
+            }
+            
+            // Create form data
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('mode', mode);
+            
+            if (mode === 'socratic') {
+                formData.append('max_questions', maxQuestions);
+                formData.append('use_sre', useSre ? '1' : '0');
+            }
+            
+            // Show loading state
+            elements.multimodal.processButton.disabled = true;
+            elements.multimodal.processButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
+            
+            // Send request
+            fetch('/api/multimodal/process', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayMultimodalResults(data, mode);
+                    } else {
+                        alert('Error processing file: ' + (data.error || 'Unknown error'));
+                    }
+                    
+                    // Reset loading state
+                    elements.multimodal.processButton.disabled = false;
+                    elements.multimodal.processButton.innerHTML = '<i class="bi bi-gear"></i> Process';
+                })
+                .catch(error => {
+                    console.error('Error processing file:', error);
+                    alert('Error processing file: ' + error.message);
+                    
+                    // Reset loading state
+                    elements.multimodal.processButton.disabled = false;
+                    elements.multimodal.processButton.innerHTML = '<i class="bi bi-gear"></i> Process';
+                });
+        }
+        
+        // Display multimodal results
+        function displayMultimodalResults(data, mode) {
+            // Show results container
+            elements.multimodal.results.style.display = 'block';
+            
+            // Update extracted text
+            elements.multimodal.extractedText.textContent = data.text || 'No text extracted';
+            
+            // Update analysis based on mode
+            if (mode === 'multimodal') {
+                elements.multimodal.analysis.innerHTML = md.render(data.content || 'No analysis available');
+                elements.multimodal.questionsContainer.style.display = 'none';
+            } else if (mode === 'socratic') {
+                // For socratic mode, display both analysis and questions
+                elements.multimodal.analysis.innerHTML = md.render(data.reasoning || 'No analysis available');
+                
+                // Display questions
+                elements.multimodal.questionsContainer.style.display = 'block';
+                
+                const questionsContainer = elements.multimodal.questions;
+                questionsContainer.innerHTML = '';
+                
+                if (data.questions && data.questions.length > 0) {
+                    data.questions.forEach((question, index) => {
+                        const questionItem = document.createElement('div');
+                        questionItem.className = 'list-group-item';
+                        questionItem.innerHTML = `
+                            <div class="d-flex align-items-start">
+                                <span class="badge bg-primary me-2">${index + 1}</span>
+                                <div>${question}</div>
+                            </div>
+                        `;
+                        questionsContainer.appendChild(questionItem);
+                    });
+                } else {
+                    questionsContainer.innerHTML = '<div class="list-group-item text-center">No questions generated</div>';
+                }
+            }
+        }
+        
+        // Populate settings form
+        function populateSettings(settings) {
+            // Provider and model settings
+            elements.settings.providerSelect.value = settings.prefer_provider || 'auto';
+            
+            const ollama = settings.integrations?.ollama || {};
+            if (ollama.default_model) {
+                elements.settings.modelSelect.value = ollama.default_model;
+            }
+            
+            if (ollama.multimodal_model) {
+                elements.settings.multimodalModelSelect.value = ollama.multimodal_model;
+            }
+            
+            // Feature settings
+            elements.settings.useSOT.checked = settings.use_sot !== false;
+            elements.settings.useRAG.checked = settings.use_document_rag !== false;
+            elements.settings.useMultimodal.checked = settings.use_multimodal !== false;
+            elements.settings.useLLMQuestions.checked = settings.use_llm_questions !== false;
+            
+            // Advanced settings
+            if (ollama.context_length) {
+                elements.settings.contextLength.value = ollama.context_length.toString();
+            }
+            
+            // Load patterns
+            fetch('/api/patterns')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        populatePatterns(data.patterns);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading patterns:', error);
+                });
+        }
+        
+        // Populate patterns form
+        function populatePatterns(patterns) {
+            elements.settings.vaguePatterns.value = patterns.vague.join('\n');
+            elements.settings.genderBiasPatterns.value = patterns.gender_bias.join('\n');
+            elements.settings.stereotypePatterns.value = patterns.stereotype.join('\n');
+            elements.settings.claimPatterns.value = patterns.unsupported_claim.join('\n');
+        }
+        
+        // Save all settings
+        function saveAllSettings() {
+            const settings = {
+                prefer_provider: elements.settings.providerSelect.value,
+                integrations: {
+                    ollama: {
+                        default_model: elements.settings.modelSelect.value,
+                        multimodal_model: elements.settings.multimodalModelSelect.value,
+                        context_length: parseInt(elements.settings.contextLength.value),
+                        flash_attention: elements.settings.flashAttention.checked,
+                        kv_cache_type: elements.settings.kvCache.value
+                    }
+                },
+                use_sot: elements.settings.useSOT.checked,
+                use_document_rag: elements.settings.useRAG.checked,
+                use_multimodal: elements.settings.useMultimodal.checked,
+                use_llm_questions: elements.settings.useLLMQuestions.checked
+            };
+            
+            fetch('/api/settings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(settings)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Settings saved successfully');
+                    } else {
+                        alert('Error saving settings: ' + (data.error || 'Unknown error'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving settings:', error);
+                    alert('Error saving settings: ' + error.message);
+                });
+            
+            // Also save patterns
+            savePatterns();
+        }
+        
+        // Reset all settings
+        function resetAllSettings() {
+            if (!confirm('Are you sure you want to reset all settings to defaults?')) return;
+            
+            fetch('/api/settings/reset', {
+                method: 'POST'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Settings reset to defaults');
+                        // Reload settings
+                        populateSettings(data.settings);
+                    } else {
+                        alert('Error resetting settings: ' + (data.error || 'Unknown error'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error resetting settings:', error);
+                    alert('Error resetting settings: ' + error.message);
+                });
+        }
+        
+        // Save patterns
+        function savePatterns() {
+            const patterns = {
+                vague: elements.settings.vaguePatterns.value.split('\n').filter(line => line.trim()),
+                gender_bias: elements.settings.genderBiasPatterns.value.split('\n').filter(line => line.trim()),
+                stereotype: elements.settings.stereotypePatterns.value.split('\n').filter(line => line.trim()),
+                unsupported_claim: elements.settings.claimPatterns.value.split('\n').filter(line => line.trim())
+            };
+            
+            fetch('/api/settings/detectors', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(patterns)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Patterns saved successfully');
+                    } else {
+                        alert('Error saving patterns: ' + (data.error || 'Unknown error'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving patterns:', error);
+                    alert('Error saving patterns: ' + error.message);
+                });
+        }
+        
+        // Reset patterns
+        function resetPatterns() {
+            if (!confirm('Are you sure you want to reset patterns to defaults?')) return;
+            
+            fetch('/api/patterns/reset', {
+                method: 'POST'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Patterns reset to defaults');
+                        // Reload patterns
+                        populatePatterns(data.patterns);
+                    } else {
+                        alert('Error resetting patterns: ' + (data.error || 'Unknown error'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error resetting patterns:', error);
+                    alert('Error resetting patterns: ' + error.message);
+                });
+        }
+        
+        // Helper: Format file size
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+            return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
+        }
+        
+        // Helper: Format date
+        function formatDate(dateStr) {
+            try {
+                const date = new Date(dateStr);
+                return date.toLocaleDateString();
+            } catch (e) {
+                return dateStr;
+            }
+        }
+    </script>
+</body>
+</html>

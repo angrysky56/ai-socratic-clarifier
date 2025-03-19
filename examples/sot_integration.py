@@ -10,7 +10,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 try:
-    from sketch_of_thought import SoT
+    from sot_installation import SoT
     from socratic_clarifier import SocraticClarifier
     SOT_AVAILABLE = True
 except ImportError:

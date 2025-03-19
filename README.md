@@ -11,6 +11,7 @@ An advanced system for enhancing critical thinking through AI-assisted questioni
 - **Document Management**: Upload, view, and use documents as context for AI analysis
 - **Multimodal Support**: Process images and PDFs using OCR and multimodal AI models
 - **RAG Context**: Use uploaded documents as retrieval-augmented generation context for more informed AI responses
+- **Advanced RAG**: Enhanced document retrieval and processing with improved relevance scoring and large context utilization
 
 ## Getting Started
 
@@ -35,7 +36,7 @@ An advanced system for enhancing critical thinking through AI-assisted questioni
    source venv/bin/activate # On Windows, use 'venv\Scripts\activate'
    # Install dependencies
    pip install -r requirements.txt
-   python install_dependencies.py
+   python install_all_dependencies.py
 
    ```
 
@@ -63,26 +64,6 @@ An advanced system for enhancing critical thinking through AI-assisted questioni
    http://localhost:5000
    ```
 
-## Usage
-
-The AI-Socratic-Clarifier offers several interaction modes:
-
-1. **Enhanced Chat**: The main interface with document management and RAG context
-   - Access at: `/enhanced`
-   - Upload and manage documents
-   - Use documents as context for AI analysis
-   - Visualize the AI's reasoning process
-
-2. **Reflective Mode**: Focused on the reflective ecosystem visualization
-   - Access at: `/reflection`
-   - See the meta-meta framework in action
-   - Explore different reasoning paths
-
-3. **Multimodal Analysis**: Process images and PDFs
-   - Access at: `/multimodal`
-   - Upload images or PDFs for processing
-   - Extract text with OCR
-   - Analyze visual content with multimodal models
 
 ## Configuration
 
@@ -91,10 +72,21 @@ Configuration options are available in `config.json`:
 ```json
 {
     "integrations": {
+        "lm_studio": {
+            "enabled": true,
+            "base_url": "http://localhost:1234/v1",
+            "api_key": null,
+            "default_model": "default",
+            "timeout": 60
+        },
         "ollama": {
             "enabled": true,
             "base_url": "http://localhost:11434/api",
+            "api_key": null,
             "default_model": "gemma3:latest",
+            "default_embedding_model": "nomic-embed-text",
+            "timeout": 60,
+            "context_length": 8192,
             "multimodal_model": "llava:latest"
         }
     },
@@ -103,10 +95,45 @@ Configuration options are available in `config.json`:
         "use_llm_questions": true,
         "use_llm_reasoning": true,
         "use_sot": true,
-        "use_multimodal": true
+        "use_multimodal": true,
+        "sre_global_resonance": 0.8,
+        "sre_adaptive_flexibility": 0.5,
+        "use_sre_visualization": true,
+        "auto_expand_sre": true,
+        "sot": {
+            "default_paradigm": "auto"
+        },
+        "use_document_rag": true,
+        "advanced_rag": true,
+        "rag_context_limit": 50000,
+        "use_model_for_rag": true,
+        "socratic_reasoning": {
+            "enabled": true,
+            "system_prompt": "You are a master of Socratic questioning who helps people improve their critical thinking. Your purpose is to craft precise, thoughtful questions that identify potential issues in people's statements. Based on the text and specific issues detected, create thought-provoking questions that will: 1) Encourage the person to recognize their own assumptions, 2) Help them examine whether generalizations account for exceptions, 3) Prompt consideration of evidence for claims made, 4) Lead them to clarify vague or imprecise language, 5) Guide reflection on normative statements that impose values. Make each question genuinely useful for deepening understanding, not rhetorical. Each question should directly address a specific issue identified in the text.",
+            "reasoning_depth": "deep"
+        }
     }
 }
 ```
+
+## Advanced Features
+
+### Advanced RAG Integration
+
+The system includes enhanced Retrieval-Augmented Generation (RAG) capabilities:
+
+- Uses the full context window of large language models (up to 128k tokens)
+- Improved document retrieval with advanced relevance scoring
+- Better multimodal document processing
+- Smarter context integration in prompts
+
+To enable these features:
+
+```bash
+./apply_advanced_rag_fixes.sh
+```
+
+See `ADVANCED_RAG_README.md` for detailed information.
 
 ## Troubleshooting
 

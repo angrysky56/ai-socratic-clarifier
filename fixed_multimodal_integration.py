@@ -42,28 +42,8 @@ except ImportError:
 
 
 def load_config():
-    """Load configuration from the project's config.json file."""
-    # Start with the current file's directory and go up until we find config.json
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    
-    # Try to find config.json by going up the directory tree
-    for _ in range(5):  # Limit the number of parent directories to check
-        config_path = os.path.join(current_dir, 'config.json')
-        if os.path.exists(config_path):
-            try:
-                with open(config_path, 'r') as f:
-                    return json.load(f)
-            except Exception as e:
-                print(f"Error loading configuration: {e}")
-                return {}
-        
-        # Go up one directory
-        current_dir = os.path.dirname(current_dir)
-    
-    # If we get here, try the direct project root path
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-    config_path = os.path.join(project_root, 'config.json')
-    
+    """Load configuration from ../../../../../../../../config.json."""
+    config_path = os.path.join(os.path.dirname(__file__), '../../../../../../../../config.json')
     try:
         if os.path.exists(config_path):
             with open(config_path, 'r') as f:
@@ -246,35 +226,13 @@ def analyze_image_with_multimodal(image_path: str, prompt: Optional[str] = None)
             }
         )
         
-        # Process response safely
         if response.status_code == 200:
-            try:
-                result = response.json()
-                return {
-                    "success": True,
-                    "content": result.get("message", {}).get("content", ""),
-                    "model": multimodal_model
-                }
-            except requests.exceptions.JSONDecodeError:
-                # Handle the JSON decode error by parsing the raw text
-                content = response.text
-                # Basic parsing to extract content from malformed JSON
-                content_start = content.find('"content":"')
-                content_end = content.find('"}', content_start)
-                if content_start > 0 and content_end > 0:
-                    extracted_content = content[content_start+11:content_end].replace("\\n", "\n").replace('\\"', '"')
-                    return {
-                        "success": True,
-                        "content": extracted_content,
-                        "model": multimodal_model
-                    }
-                else:
-                    # If we can't parse it, just return the raw text
-                    return {
-                        "success": True,
-                        "content": f"Raw response: {content[:500]}...",
-                        "model": multimodal_model
-                    }
+            result = response.json()
+            return {
+                "success": True,
+                "content": result.get("message", {}).get("content", ""),
+                "model": multimodal_model
+            }
         else:
             error_msg = f"Error calling multimodal model: {response.status_code} - {response.text}"
             print(error_msg)
@@ -383,10 +341,8 @@ def process_file(file_path: str, use_multimodal: bool = True) -> Dict[str, Any]:
 
 
 def update_config_for_multimodal():
-    """Update config.json to include multimodal settings."""
-    # Find config.json in project root
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-    config_path = os.path.join(project_root, 'config.json')
+    """Update ../../../../../../../../config.json to include multimodal settings."""
+    config_path = os.path.join(os.path.dirname(__file__), '../../../../../../../../config.json')
     
     try:
         # Load existing config

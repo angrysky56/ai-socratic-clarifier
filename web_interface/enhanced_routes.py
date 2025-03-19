@@ -277,7 +277,7 @@ def chat_message():
         logger.info(f"Processing chat message with enhanced capabilities: '{message}'")
         
         # Get document content for RAG
-        if use_rag and document_context:
+        if use_rag:
             manager = get_document_manager()
             
             # Add content to document context
@@ -287,6 +287,16 @@ def chat_message():
                     if content:
                         document_context[i]["content"] = content
                         document_context[i]["relevance"] = 0.95  # High relevance for manually selected docs
+                        
+            # Ensure document content is substantial for analysis
+            for i, doc in enumerate(document_context):
+                if "content" in doc and len(doc["content"].strip()) < 50:
+                    logger.warning(f"Document {i} has very short content ({len(doc['content'])} chars). This may not provide enough context.")  # High relevance for manually selected docs
+                        
+            # Ensure document content is substantial for analysis
+            for i, doc in enumerate(document_context):
+                if "content" in doc and len(doc["content"].strip()) < 50:
+                    logger.warning(f"Document {i} has very short content ({len(doc['content'])} chars). This may not provide enough context.")  # High relevance for manually selected docs
         
         # Use direct integration to analyze the text
         if use_sre:

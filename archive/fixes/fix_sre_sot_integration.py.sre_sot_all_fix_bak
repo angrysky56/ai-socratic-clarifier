@@ -74,7 +74,7 @@ def check_ecosystem_state():
     """Check and fix the ecosystem state file."""
     try:
         # Look for existing ecosystem state
-        state_path = os.path.join(os.path.dirname(__file__), 'sequential_thinking', 'ecosystem_state.json')
+        state_path = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')), 'sequential_thinking', 'ecosystem_state.json')
         
         if not os.path.exists(state_path):
             logger.info("Ecosystem state file doesn't exist, creating default state")

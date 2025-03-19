@@ -273,8 +273,28 @@
                             <div class="card-body">
                                 <form id="promptsForm">
                                     <div class="mb-3">
-                                        <label for="questionPrompt" class="form-label">Question Generation Prompt</label>
-                                        <textarea id="questionPrompt" class="form-control" rows="8">{{ question_prompt }}</textarea>
+                                        <label for="socraticReasoningEnabled" class="form-label">Socratic Reasoning</label>
+                                        <div class="form-check form-switch mb-2">
+                                            <input class="form-check-input" type="checkbox" id="socraticReasoningEnabled" checked>
+                                            <label class="form-check-label" for="socraticReasoningEnabled">Enable Socratic Reasoning</label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="reasoningDepth" class="form-label">Reasoning Depth</label>
+                                        <select id="reasoningDepth" class="form-select">
+                                            <option value="standard">Standard</option>
+                                            <option value="deep" selected>Deep</option>
+                                            <option value="technical">Technical</option>
+                                            <option value="creative">Creative</option>
+                                        </select>
+                                        <div class="form-text">Select the depth and style of reasoning for Socratic questions</div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="questionPrompt" class="form-label">Socratic Questions Prompt</label>
+                                        <textarea id="questionPrompt" class="form-control" rows="8">{{ socratic_prompt }}</textarea>
+                                        <div class="form-text">System prompt for generating Socratic questions</div>
                                     </div>
                                     
                                     <div class="mb-3">
